@@ -91,19 +91,6 @@ if (!$table->is_downloading()) {
     echo $OUTPUT->header();
     echo $OUTPUT->box(get_string('plugindescription', 'report_allbackups'));
 
-    // Add old JS for selectall/deselectall.
-    $PAGE->requires->js_amd_inline("
-                        require(['jquery'], function($) {
-                            $('#checkusers').click(function(e) {
-                                $('#allbackupsform').find('input:checkbox').prop('checked', true);
-                                e.preventDefault();
-                            });
-                            $('#uncheckusers').click(function(e) {
-                                $('#allbackupsform').find('input:checkbox').prop('checked', false);
-                                e.preventDefault();
-                            });
-                        });");
-
     $ufiltering->display_add();
     $ufiltering->display_active();
 

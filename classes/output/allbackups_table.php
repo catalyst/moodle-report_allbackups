@@ -45,6 +45,7 @@ class allbackups_table extends \table_sql {
      *      as a key when storing table properties like sort order in the session.
      */
     public function __construct($uniqueid) {
+        global $OUTPUT;
         parent::__construct($uniqueid);
 
         // Set Download flag so we can check it before defining columns/headers to show.
@@ -59,10 +60,14 @@ class allbackups_table extends \table_sql {
             // Add selector column to report.
             $columns[] = 'selector';
 
-            $mastercheckbox = \html_writer::link('#', get_string('selectall'), array('id' => 'checkusers'));
-            $mastercheckbox .= ' / ';
-            $mastercheckbox .= \html_writer::link('#', get_string('deselectall'), array('id' => 'uncheckusers'));
-            $headers[] = $mastercheckbox;
+            $options = [
+                'id' => 'check-items',
+                'name' => 'check-items',
+                'value' => 1,
+            ];
+            $mastercheckbox = new \core\output\checkbox_toggleall('items', true, $options);
+
+            $headers[] = $OUTPUT->render($mastercheckbox);
         }
 
         $columns = array_merge($columns, array('component', 'filearea', 'filename', 'filesize', 'fullname', 'timecreated'));
@@ -92,10 +97,17 @@ class allbackups_table extends \table_sql {
      * @return string
      */
     public function col_selector($row) {
+        global $OUTPUT;
         if ($this->is_downloading()) {
             return '';
         }
-        return '<input type="checkbox" class="usercheckbox" name="item'.$row->id.'" value="'.$row->id.'" />';
+        $options = [
+            'id' => 'item'.$row->id,
+            'name' => 'item'.$row->id,
+            'value' => $row->id,
+        ];
+        $itemcheckbox = new \core\output\checkbox_toggleall('items', false, $options);
+        return $OUTPUT->render($itemcheckbox);
     }
 
     /**
