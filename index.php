@@ -120,7 +120,7 @@ list($extrasql, $params) = $ufiltering->get_sql_filter();
 $fields = 'f.id, f.contextid, f.component, f.filearea, f.filename, f.userid, f.filesize, f.timecreated, f.filepath, f.itemid, ';
 $fields .= get_all_user_name_fields(true, 'u');
 $from = '{files} f JOIN {user} u on u.id = f.userid';
-$where = "f.filename like '%.mbz' and f.filename <> '.' and f.component <> 'tool_recyclebin' and f.filearea <> 'draft'";
+$where = "f.filename like '%.mbz' and f.component <> 'tool_recyclebin' and f.filearea <> 'draft'";
 if (!empty($extrasql)) {
     $where .= " and ".$extrasql;
 }
