@@ -66,7 +66,9 @@ if (has_capability('report/allbackups:delete', $context)) {
             foreach ($fileids as $id) {
                 $fs = new file_storage();
                 $file = $fs->get_file_by_id((int)$id);
-                if (!empty($file)) {
+                $fileext = pathinfo($file->get_filename(), PATHINFO_EXTENSION);
+                // Make sure the file exists, and it is a backup file we are deleting.
+                if (!empty($file) && $fileext == 'mbz') {
                     $file->delete();
                     $event = \report_allbackups\event\backup_deleted::create(array(
                         'context' => context::instance_by_id($file->get_contextid()),
