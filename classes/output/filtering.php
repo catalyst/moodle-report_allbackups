@@ -45,11 +45,7 @@ class filtering extends \user_filtering {
      */
     public function __construct($fieldnames = null, $baseurl = null, $extraparams = null) {
         // Adds custom "filename" to list of filters.
-        $fieldnames = array('filename' => 0, 'realname' => 0, 'lastname' => 1, 'firstname' => 1, 'username' => 1, 'email' => 1,
-                'city' => 1, 'country' => 1, 'confirmed' => 1, 'suspended' => 1, 'profile' => 1, 'courserole' => 1,
-                'anycourses' => 1, 'systemrole' => 1, 'cohort' => 1, 'firstaccess' => 1, 'lastaccess' => 1,
-                'neveraccessed' => 1, 'timemodified' => 1, 'nevermodified' => 1, 'auth' => 1, 'mnethostid' => 1,
-                'idnumber' => 1);
+        $fieldnames = array('filename' => 0, 'realname' => 0, 'filearea' => 0, 'timecreated' => 0);
         parent::__construct($fieldnames, $baseurl, $extraparams);
     }
 
@@ -63,6 +59,28 @@ class filtering extends \user_filtering {
         if ($fieldname == 'filename') {
             return new \user_filter_text('filename', get_string('filename', 'report_allbackups'), $advanced, 'filename');
         }
+        if ($fieldname == 'timecreated') {
+            return new \user_filter_date('timecreated', get_string('date'), $advanced, 'f.timecreated');
+        }
+        if ($fieldname == 'filearea') {
+            return new \user_filter_simpleselect('filearea', get_string('filearea', 'report_allbackups'),
+                $advanced, 'f.filearea', $this->getfileareas());
+        }
         return parent::get_field($fieldname, $advanced);
     }
+
+    /**
+     * Helper function to get list of fileareas to use in filter.
+     *
+     * @return array
+     * @throws \dml_exception
+     */
+    private static function getfileareas() {
+        global $DB;
+        $sql = "SELECT DISTINCT filearea, filearea as name
+                 FROM {files}
+                 WHERE filename like '%.mbz' and component <> 'tool_recyclebin' and filearea <> 'draft'";
+        return $DB->get_records_sql_menu($sql);
+    }
+
 }
