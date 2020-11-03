@@ -38,18 +38,6 @@ require_once($CFG->dirroot.'/user/filters/lib.php');
 class filtering extends \user_filtering {
 
     /**
-     * Contructor
-     * @param array $fieldnames array of visible user fields
-     * @param string $baseurl base url used for submission/return, null if the same of current page
-     * @param array $extraparams extra page parameters
-     */
-    public function __construct($fieldnames = null, $baseurl = null, $extraparams = null) {
-        // Adds custom "filename" to list of filters.
-        $fieldnames = array('filename' => 0, 'realname' => 0, 'filearea' => 0, 'timecreated' => 0);
-        parent::__construct($fieldnames, $baseurl, $extraparams);
-    }
-
-    /**
      * Adds handling for custom fieldnames.
      * @param string $fieldname
      * @param boolean $advanced
