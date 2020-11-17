@@ -23,7 +23,7 @@
  */
 
 namespace report_allbackups\output;
-
+use report_allbackups\filters\coursecategoryfilter;
 defined('MOODLE_INTERNAL') || die();
 
 require_once($CFG->dirroot.'/user/filters/lib.php');
@@ -54,6 +54,10 @@ class filtering extends \user_filtering {
             return new \user_filter_simpleselect('filearea', get_string('filearea', 'report_allbackups'),
                 $advanced, 'f.filearea', $this->getfileareas());
         }
+        if ($fieldname == 'coursecategory') {
+            return new coursecategoryfilter('coursecategory', get_string('coursecategory', 'report_allbackups'),
+                $advanced, 'c.category', \core_course_category::make_categories_list());
+        }
         return parent::get_field($fieldname, $advanced);
     }
 
@@ -70,5 +74,4 @@ class filtering extends \user_filtering {
                  WHERE filename like '%.mbz' and component <> 'tool_recyclebin' and filearea <> 'draft'";
         return $DB->get_records_sql_menu($sql);
     }
-
 }

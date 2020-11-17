@@ -121,7 +121,7 @@ if (has_capability('report/allbackups:delete', $context)) {
 if ($currenttab == 'autobackup') {
     $filters = array('filename' => 0, 'timecreated' => 0);
 } else {
-    $filters = array('filename' => 0, 'realname' => 0, 'filearea' => 0, 'timecreated' => 0);
+    $filters = array('filename' => 0, 'realname' => 0, 'coursecategory' => 0, 'filearea' => 0, 'timecreated' => 0);
 }
 if ($currenttab == 'autobackup') {
     $table = new \report_allbackups\output\autobackups_table('autobackups');
@@ -173,6 +173,11 @@ if ($currenttab == 'autobackup') {
     $fields = 'f.id, f.contextid, f.component, f.filearea, f.filename, f.userid, f.filesize, f.timecreated, f.filepath, f.itemid, ';
     $fields .= get_all_user_name_fields(true, 'u');
     $from = '{files} f JOIN {user} u on u.id = f.userid';
+    if (strpos($extrasql, 'c.category') !== false) {
+        // Category filter included, Join with course table.
+        $from .= ' JOIN {context} cx ON cx.id = f.contextid AND cx.contextlevel = '.CONTEXT_COURSE .
+                 ' JOIN {course} c ON c.id = cx.instanceid';
+    }
     $where = "f.filename like '%.mbz' and f.component <> 'tool_recyclebin' and f.filearea <> 'draft'";
     if (!empty($extrasql)) {
         $where .= " and ".$extrasql;
