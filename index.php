@@ -1,4 +1,5 @@
 <?php
+
 // This file is part of Moodle - http://moodle.org/
 //
 // Moodle is free software: you can redistribute it and/or modify
@@ -21,6 +22,11 @@
  * @copyright  2020 Catalyst IT
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
+use ZipStream\Option\Archive;
+use ZipStream\ZipStream;
+use core_files\archive_writer;
+use core_files\local\archive_writer\file_writer_interface as file_writer_interface;
+use core_files\local\archive_writer\stream_writer_interface as stream_writer_interface;
 
 require_once('../../config.php');
 require_once($CFG->libdir . '/adminlib.php');
@@ -28,6 +34,8 @@ require_once($CFG->libdir . '/adminlib.php');
 $delete = optional_param('delete', '', PARAM_TEXT);
 $filename = optional_param('filename', '', PARAM_TEXT);
 $deleteselected = optional_param('deleteselectedfiles', '', PARAM_TEXT);
+$downloadselected = optional_param('downloadallselectedfiles', '', PARAM_TEXT);
+
 $fileids = optional_param('fileids', '', PARAM_TEXT);
 $currenttab = optional_param('tab', 'core', PARAM_TEXT);
 
@@ -118,6 +126,44 @@ if (has_capability('report/allbackups:delete', $context)) {
         }
     }
 }
+
+if (!empty($downloadselected)) { // Download action.
+    if (empty($fileids)) {
+
+        $fileids = array();
+
+        // Initialize zip for saving multiple selected files at once
+        $options = new Archive();
+        $options->setSendHttpHeaders(true);
+        $zip = new ZipStream('all_backups.zip', $options);
+
+        // Get list of ids from the checked checkboxes.
+        $post = data_submitted();
+        foreach ($post as $k => $v) {
+            if (preg_match('/^item(\d+)$/', $k, $m)) {
+                $fileids[] = $m[1];
+            }
+        }
+    
+        foreach ($fileids as $id) {
+
+            $fs = new file_storage();
+            $file = $fs->get_file_by_id((int)$id);
+            $fileext = pathinfo($file->get_filename(), PATHINFO_EXTENSION);
+
+            // Make sure the file exists, and it is a backup file we are downloading.
+            if (!empty($file) && $fileext == 'mbz') {
+
+                $zip->addFile($file->get_filename(), $file->get_content());
+
+            } else {
+                \core\notification::add(get_string('couldnotdownloadfile', 'report_allbackups', $id));
+            }
+        }
+        $zip->finish();
+    }    
+}
+
 if ($currenttab == 'autobackup') {
     $filters = array('filename' => 0, 'timecreated' => 0);
 } else {
@@ -188,9 +234,14 @@ if ($currenttab == 'autobackup') {
 }
 
 if (!$table->is_downloading()) {
+
     echo html_writer::tag('input', "", array('name' => 'deleteselectedfiles', 'type' => 'submit',
         'id' => 'deleteallselected', 'class' => 'btn btn-secondary',
         'value' => get_string('deleteselectedfiles', 'report_allbackups')));
+    echo html_writer::tag('input', "", array('name' => 'downloadallselectedfiles', 'style'=>'margin: 10px', 'type' => 'submit',
+        'id' => 'downloadallselected', 'class' => 'btn btn-secondary',
+        'value' => get_string('downloadallselectedfiles', 'report_allbackups')));
+
     echo html_writer::end_div();
     echo html_writer::end_tag('form');
     $event = \report_allbackups\event\report_viewed::create();
