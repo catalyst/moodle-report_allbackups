@@ -1,5 +1,4 @@
 <?php
-
 // This file is part of Moodle - http://moodle.org/
 //
 // Moodle is free software: you can redistribute it and/or modify
@@ -24,9 +23,6 @@
  */
 use ZipStream\Option\Archive;
 use ZipStream\ZipStream;
-use core_files\archive_writer;
-use core_files\local\archive_writer\file_writer_interface as file_writer_interface;
-use core_files\local\archive_writer\stream_writer_interface as stream_writer_interface;
 
 require_once('../../config.php');
 require_once($CFG->libdir . '/adminlib.php');
@@ -35,7 +31,6 @@ $delete = optional_param('delete', '', PARAM_TEXT);
 $filename = optional_param('filename', '', PARAM_TEXT);
 $deleteselected = optional_param('deleteselectedfiles', '', PARAM_TEXT);
 $downloadselected = optional_param('downloadallselectedfiles', '', PARAM_TEXT);
-
 $fileids = optional_param('fileids', '', PARAM_TEXT);
 $currenttab = optional_param('tab', 'core', PARAM_TEXT);
 
@@ -247,4 +242,5 @@ if (!$table->is_downloading()) {
     $event = \report_allbackups\event\report_viewed::create();
     $event->trigger();
     echo $OUTPUT->footer();
+    
 }
