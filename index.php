@@ -21,10 +21,6 @@
  * @copyright  2020 Catalyst IT
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
-require_once(__DIR__.'/../../vendor/autoload.php');
-use ZipStream\Option\Archive;
-use ZipStream\ZipStream;
-
 
 require_once('../../config.php');
 require_once($CFG->libdir . '/adminlib.php');
@@ -32,7 +28,6 @@ require_once($CFG->libdir . '/adminlib.php');
 $delete = optional_param('delete', '', PARAM_TEXT);
 $filename = optional_param('filename', '', PARAM_TEXT);
 $deleteselected = optional_param('deleteselectedfiles', '', PARAM_TEXT);
-$downloadselected = optional_param('downloadallselectedfiles', '', PARAM_TEXT);
 $fileids = optional_param('fileids', '', PARAM_TEXT);
 $currenttab = optional_param('tab', 'core', PARAM_TEXT);
 
@@ -45,9 +40,7 @@ if (empty($backupdest) && $currenttab == 'autobackup') {
 
 $context = context_system::instance();
 if (has_capability('report/allbackups:delete', $context)) {
-
     if (!empty($deleteselected) || !empty($delete)) { // Delete action.
-
         if (empty($fileids)) {
             $fileids = array();
             // First time form submit - get list of ids from checkboxes or from single delete action.
@@ -91,6 +84,7 @@ if (has_capability('report/allbackups:delete', $context)) {
                     if ($id == clean_param($id, PARAM_FILE) &&
                         pathinfo($id, PATHINFO_EXTENSION) == 'mbz' &&
                         is_readable($backupdest .'/'. $id)) {
+
                         unlink($backupdest .'/'. $id);
                         $event = \report_allbackups\event\autobackup_deleted::create(array(
                             'context' => context_system::instance(),
@@ -124,80 +118,6 @@ if (has_capability('report/allbackups:delete', $context)) {
         }
     }
 }
-
-// Triggers when "Download all select files" is clicked.
-if (!empty($downloadselected) && confirm_sesskey()) {
-    if (empty($fileids)) {
-
-        $fileids = array();
-
-        // Initialize zip for saving multiple selected files at once.
-        $options = new Archive();
-        $options->setSendHttpHeaders(true);
-        $zip = new ZipStream('all_backups.zip', $options);
-
-        // Get list of ids from the checked checkboxes.
-        $post = data_submitted();
-
-        if($currenttab == 'autobackup') {
-
-            // Get list of names from the checked backups.
-            foreach ($post as $k => $v) {
-                if (preg_match('/^item(.*)/', $k, $m)) {
-                    $fileids[] = $v; // Use value (filename) in array.
-                }
-            }
-
-            // Check nothing weird passed in filename - protect against directory traversal etc.
-            // Check to make sure this is an mbz file.
-            foreach ($fileids as $filename) {
-
-                if ($filename == clean_param($filename, PARAM_FILE) &&
-                    pathinfo($filename, PATHINFO_EXTENSION) == 'mbz' &&
-                    is_readable($backupdest .'/'. $filename)) {
-
-                        $file = $backupdest.'/'.$filename;
-                        $file_contents = file_get_contents($file, FILE_USE_INCLUDE_PATH);
-                        $zip->addFile($filename, $file_contents);
-        
-                }else {
-                        \core\notification::add(get_string('couldnotdownloadfile', 'report_allbackups'));
-                }
-            }
-
-        } else {
-
-            // Get list of ids from the checked backups.
-            foreach ($post as $k => $v) {
-                if (preg_match('/^item(\d+)$/', $k, $m)) {
-                    $fileids[] = $m[1];
-                }
-            }
-
-            // Check nothing weird passed in filename - protect against directory traversal etc.
-            // Check to make sure this is an mbz file.
-            foreach ($fileids as $id) {
-
-                // Translate the file id into file name / contents 
-                $fs = new file_storage();
-                $file = $fs->get_file_by_id((int)$id);
-                $fileext = pathinfo($file->get_filename(), PATHINFO_EXTENSION);
-
-                    // Make sure the file exists, and it is a backup file we are downloading.
-                    if (!empty($file) && $fileext == 'mbz') {
-        
-                        $zip->addFile($file->get_filename(), $file->get_content());
-        
-                    } else {
-                        \core\notification::add(get_string('couldnotdownloadfile', 'report_allbackups', $id));
-                    }
-            }
-        }
-    
-        $zip->finish();
-    }    
-}
-
 if ($currenttab == 'autobackup') {
     $filters = array('filename' => 0, 'timecreated' => 0);
 } else {
@@ -268,18 +188,12 @@ if ($currenttab == 'autobackup') {
 }
 
 if (!$table->is_downloading()) {
-
     echo html_writer::tag('input', "", array('name' => 'deleteselectedfiles', 'type' => 'submit',
         'id' => 'deleteallselected', 'class' => 'btn btn-secondary',
         'value' => get_string('deleteselectedfiles', 'report_allbackups')));
-    echo html_writer::tag('input', "", array('name' => 'downloadallselectedfiles', 'style'=>'margin: 10px', 'type' => 'submit',
-        'id' => 'downloadallselected', 'class' => 'btn btn-secondary',
-        'value' => get_string('downloadallselectedfiles', 'report_allbackups')));
-
     echo html_writer::end_div();
     echo html_writer::end_tag('form');
     $event = \report_allbackups\event\report_viewed::create();
     $event->trigger();
     echo $OUTPUT->footer();
-    
 }
