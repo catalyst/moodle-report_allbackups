@@ -44,7 +44,7 @@ class autobackups_table extends \flexible_table {
      * @param string $uniqueid
      * @throws \coding_exception
      */
-    public function __construct($uniqueid) {
+    public function __construct($uniqueid, $context=null) {
         global $PAGE, $OUTPUT;
         parent::__construct($uniqueid);
         $url = $PAGE->url;
@@ -54,6 +54,13 @@ class autobackups_table extends \flexible_table {
 
         // Set Download flag so we can check it before defining columns/headers to show.
         $this->is_downloading(optional_param('download', '', PARAM_ALPHA), 'allbackups');
+
+        if ($context) {
+            $this->context = $context;
+        } else {
+            $this->context = \context_system::instance();
+        }
+        $this->useridfield = "userid";
 
         // Define the list of columns to show.
         $columns = array();
@@ -96,18 +103,30 @@ class autobackups_table extends \flexible_table {
      *
      * @throws \dml_exception
      */
-    public function adddata() {
-        global $SESSION;
+    public function adddata($ufiltering, $context) {
+        global $SESSION, $DB;
 
         $rows = array();
         $backupdest = get_config('backup', 'backup_auto_destination');
         $directory = new RecursiveDirectoryIterator($backupdest);
         $iterator = new RecursiveIteratorIterator($directory);
 
+        if ($context->contextlevel != CONTEXT_SYSTEM) {
+            $sql = "SELECT instanceid as id, instanceid
+                    FROM {context}
+                    WHERE contextlevel = ".CONTEXT_COURSE." AND path LIKE '".$context->path."%'";
+            $allowedcourses = $DB->get_records_sql_menu($sql);
+        }
+
         foreach ($iterator as $file) {
             // Sanity check and only include .mbz files.
             if ($file->isFile() && $file->getExtension() == 'mbz') {
                 $filename = $file->getFilename();
+
+                // Filter out backups from other courses (ones that the user is not a manager of).
+                if ($context->contextlevel != CONTEXT_SYSTEM && !$this->filter_context($filename, $allowedcourses)) {
+                    continue;
+                }
 
                 // Check against filename filters.
                 if (!$this->filter_filename($filename)) {
@@ -153,7 +172,6 @@ class autobackups_table extends \flexible_table {
      */
     public function col_action($row) {
         global $USER;
-        $context = \context_system::instance();
         $fileurl = moodle_url::make_pluginfile_url(
             $context->id,
             'report_allbackups',
@@ -165,7 +183,7 @@ class autobackups_table extends \flexible_table {
         );
         $output = \html_writer::link($fileurl, get_string('download'));
 
-        if (has_capability('moodle/restore:restorecourse', $context)) {
+        if (has_capability('moodle/restore:restorecourse', $this->context)) {
             $params = array();
             $params['filename'] = $row->filename;
             $restoreurl = new moodle_url('/report/allbackups/restorehandler.php', $params);
@@ -173,7 +191,7 @@ class autobackups_table extends \flexible_table {
             $output .= ' | '. html_writer::link($restoreurl, get_string('restore'));
         }
 
-        if (has_capability('report/allbackups:delete', $context)) {
+        if (has_capability('report/allbackups:delete', $this->context)) {
             $params = array('delete' => $row->filename, 'filename' => $row->filename, 'tab' => 'autobackup');
             $deleteurl = new moodle_url('/report/allbackups/index.php', $params);
             $output .= ' | '. html_writer::link($deleteurl, get_string('delete'));
@@ -222,6 +240,17 @@ class autobackups_table extends \flexible_table {
         return $OUTPUT->render($itemcheckbox);
     }
 
+    /**
+     * Function to filter results using user context.
+     *
+     * @param string $filename
+     * @param array $allowedcourses
+     * @return bool|int
+     */
+    private function filter_context($filename, $allowedcourses) {
+        $courseid = explode("-", $filename)[3];
+        return array_key_exists($courseid, $allowedcourses);
+    }
 
     /**
      * Function to filter results using the filename.

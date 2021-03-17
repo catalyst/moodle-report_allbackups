@@ -39,15 +39,21 @@
  * @throws require_login_exception
  */
 function report_allbackups_pluginfile($course,
-                           $cm,
-                           context $context,
-                           $filearea,
-                           $args,
-                           $forcedownload,
-                           array $options = array()) {
+        $cm,
+        context $context,
+        $filearea,
+        $args,
+        $forcedownload,
+        array $options = array()) {
 
-    if ($context->contextlevel != CONTEXT_SYSTEM) {
+    if ($context->contextlevel != CONTEXT_SYSTEM && $context->contextlevel != CONTEXT_COURSECAT) {
         return false;
+    }
+
+    if ($context->contextlevel == CONTEXT_COURSECAT) {
+        if (!has_capability('moodle/backup:downloadfile', $context)) {
+            return false;
+        }
     }
 
     require_login($course, false, $cm);
@@ -59,6 +65,7 @@ function report_allbackups_pluginfile($course,
     if (empty($backupdest)) {
         return false;
     }
+
     $filename = implode('/', $args);
 
     // Check nothing weird passed in filename - protect against directory traversal etc.
@@ -79,3 +86,34 @@ function report_allbackups_pluginfile($course,
     }
 }
 
+/**
+ * Extend category navigation to display a link to the category backups.
+ *
+ * @param navigation_node $settingsnav the navigation object
+ * @param context_coursecat $context the context of the current category
+ */
+function report_allbackups_extend_navigation_category_settings(navigation_node $settingsnav, context_coursecat $context) {
+    global $CFG, $PAGE, $USER;
+    if (!$PAGE->category OR $USER->id <= 1) {
+        // Only add this settings item on non-site category pages.
+        return;
+    }
+    if (!has_capability('report/categorybackups:view', $context)) {
+        // Require this capability on the course category context.
+        return;
+    }
+    $config = get_config('report_allbackups');
+    if (!$config->categorybackupmgmt) {
+        // Require category backup management mode to be enabled in settings.
+        return;
+    }
+    // Add category settings node.
+    $settingsnav->add(
+        get_string('pluginname', 'report_allbackups'),
+        new moodle_url('/report/allbackups/categorybackups.php', array("contextid" => $context->id)),
+        navigation_node::NODETYPE_LEAF,
+        'categorybackups',
+        'categorybackups',
+        new pix_icon('i/files', 'files')
+    );
+}

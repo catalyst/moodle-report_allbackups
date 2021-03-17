@@ -19,14 +19,37 @@
  *
  * @package     report_allbackups
  * @category    admin
- * @copyright   2020 Catalyst IT
+ * @copyright   2021 Arnes
  * @license     https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
 defined('MOODLE_INTERNAL') || die();
 
-$ADMIN->add('reports', new admin_externalpage('reportallbackups', get_string('pluginname', 'report_allbackups'),
-    "$CFG->wwwroot/report/allbackups/index.php", 'report/allbackups:view'));
+if ($hassiteconfig) {
+    if ($ADMIN->fulltree) {
+        $settings->add(new admin_setting_configcheckbox(
+            'report_allbackups/categorybackupmgmt',
+            new lang_string('categorybackupmgmtmode', 'report_allbackups'),
+            new lang_string('categorybackupmgmtmode_desc', 'report_allbackups'),
+            0
+        ));
 
-// No report settings.
-$settings = null;
+        $settings->add(new admin_setting_configcheckbox(
+            'report_allbackups/mdlbkponly',
+            new lang_string('mdlbkponly', 'report_allbackups'),
+            new lang_string('mdlbkponly_desc', 'report_allbackups'),
+            0
+        ));
+
+        $settings->add(new admin_setting_configcheckbox(
+            'report_allbackups/enableactivities',
+            new lang_string('enableactivities', 'report_allbackups'),
+            new lang_string('enableactivities_desc', 'report_allbackups'),
+            0
+        ));
+
+        $settings->hide_if('report_allbackups/enableactivities', 'report_allbackups/mdlbkponly');
+    }
+}
+$ADMIN->add('reports', new admin_externalpage('reportallbackups_system', get_string('pluginname', 'report_allbackups'),
+    "$CFG->wwwroot/report/allbackups/index.php", 'report/allbackups:view'));
