@@ -21,10 +21,8 @@
  * @copyright  2020 Catalyst IT
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
-require_once(__DIR__.'/../../vendor/autoload.php');
 use ZipStream\Option\Archive;
 use ZipStream\ZipStream;
-
 
 require_once('../../config.php');
 require_once($CFG->libdir . '/adminlib.php');
@@ -151,6 +149,8 @@ if (!empty($downloadselected) && confirm_sesskey()) {
             // Check nothing weird passed in filename - protect against directory traversal etc.
             // Check to make sure this is an mbz file.
             foreach ($fileids as $filename) {
+
+                var_dump($filename);die;
 
                 if ($filename == clean_param($filename, PARAM_FILE) &&
                     pathinfo($filename, PATHINFO_EXTENSION) == 'mbz' &&
