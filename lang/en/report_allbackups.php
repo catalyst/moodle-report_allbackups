@@ -33,6 +33,7 @@ $string['autobackup_description'] = 'This report shows all *.mbz (Moodle backup 
 $string['autobackupnotset'] = 'Automated backup destination is not set - you cannot use this function';
 $string['component'] = 'Component';
 $string['couldnotdeletefile'] = 'The file with id: {$a} could not be found';
+$string['couldnotdownloadfile'] = 'Unable to download all backup files';
 $string['coursecategory'] = 'Course category';
 $string['deleteselectedfiles'] = 'Delete selected files';
 $string['eventautobackupdeleted'] = 'An automated backup file was deleted';
