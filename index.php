@@ -150,8 +150,6 @@ if (!empty($downloadselected) && confirm_sesskey()) {
             // Check to make sure this is an mbz file.
             foreach ($fileids as $filename) {
 
-                var_dump($filename);die;
-
                 if ($filename == clean_param($filename, PARAM_FILE) &&
                     pathinfo($filename, PATHINFO_EXTENSION) == 'mbz' &&
                     is_readable($backupdest .'/'. $filename)) {

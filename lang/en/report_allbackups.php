@@ -34,6 +34,7 @@ $string['autobackupnotset'] = 'Automated backup destination is not set - you can
 $string['component'] = 'Component';
 $string['couldnotdeletefile'] = 'The file with id: {$a} could not be found';
 $string['couldnotdownloadfile'] = 'Unable to download all backup files';
+$string['downloadallselectedfiles'] = 'Download selected files';
 $string['coursecategory'] = 'Course category';
 $string['deleteselectedfiles'] = 'Delete selected files';
 $string['eventautobackupdeleted'] = 'An automated backup file was deleted';
