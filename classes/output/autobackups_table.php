@@ -102,7 +102,7 @@ class autobackups_table extends \flexible_table {
      * Helper function to add data to table.
      * Implements custom sort/pagination as we don't use sql to build this table.
      * @param context $context current context
-     * 
+     *
      * @throws \dml_exception
      */
     public function adddata($context) {
