@@ -221,8 +221,13 @@ if ($currenttab == 'autobackup') {
     $table->adddata($ufiltering, $PAGE->context);
 } else {
     list($extrasql, $params) = $ufiltering->get_sql_filter();
-    $fields = "f.id, f.contextid, f.component, f.filearea, f.filename, f.userid, f.filesize, f.timecreated, f.filepath, f.itemid, ";
-    $fields .= get_all_user_name_fields(true, 'u');
+    $fields = "f.id, f.contextid, f.component, f.filearea, f.filename, f.userid, f.filesize, f.timecreated, f.filepath, f.itemid";
+    if ($CFG->branch >= 311) {
+        // get_all_user_name_fields() is deprecated in 3.11; use user_fields class.
+        $fields .= \core\user_fields::for_name()->get_sql('u')->selects;
+    } else {
+        $fields .= ", " . get_all_user_name_fields(true, 'u');
+    }
 
     $pluginconfig = get_config('report_allbackups');
 
