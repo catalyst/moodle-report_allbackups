@@ -48,8 +48,11 @@ class allbackups_table extends \table_sql {
         global $OUTPUT;
         parent::__construct($uniqueid);
 
-        // Set Download flag so we can check it before defining columns/headers to show.
-        $this->is_downloading(optional_param('download', '', PARAM_ALPHA), 'allbackups');
+        if (!optional_param('downloadallselectedfiles', 0, PARAM_ALPHA)) {
+            // Set Download flag so we can check it before defining columns/headers to show.
+            // Don't set if downloading files.
+            $this->is_downloading(optional_param('download', '', PARAM_ALPHA), 'allbackups');
+        }
 
         // Define the list of columns to show.
         $columns = array();
