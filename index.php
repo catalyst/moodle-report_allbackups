@@ -167,7 +167,7 @@ if (!$table->is_downloading()) {
 }
 if ($currenttab == 'autobackup') {
     // Get list of files from backup.
-    $table->adddata($ufiltering);
+    $table->adddata($context);
 } else {
     list($extrasql, $params) = $ufiltering->get_sql_filter();
     $fields = "f.id, f.contextid, f.component, f.filearea, f.filename, f.userid, f.filesize, f.timecreated, f.filepath, f.itemid";

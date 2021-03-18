@@ -36,7 +36,13 @@ require_once($CFG->dirroot.'/user/filters/lib.php');
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class filtering extends \user_filtering {
-
+    /**
+     * Constructor for the filtering class
+     * @param array $fieldnames array of visible user fields
+     * @param string $baseurl base url used for submission/return, null if the same of current page
+     * @param array $extraparams extra page parameters
+     * @param bool $filterbycat limit the amount of returned categories by the users capabilities
+     */
     public function __construct($fieldnames = null, $baseurl = null, $extraparams = null, $filterbycat=false) {
         $this->filterbycat = $filterbycat;
         parent::__construct($fieldnames, $baseurl, $extraparams);

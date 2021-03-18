@@ -43,6 +43,8 @@ class allbackups_table extends \table_sql {
      * Constructor
      * @param int $uniqueid all tables have to have a unique id, this is used
      *      as a key when storing table properties like sort order in the session.
+     * @param context|null $context determine which backups can be viewed and/or managed by the user
+     * based on the context
      */
     public function __construct($uniqueid, $context=null) {
         global $OUTPUT;
