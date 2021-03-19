@@ -21,11 +21,16 @@
  * @copyright  2020 Catalyst IT
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
-use ZipStream\Option\Archive;
-use ZipStream\ZipStream;
 
 require_once('../../config.php');
 require_once($CFG->libdir . '/adminlib.php');
+
+// Moodle 3.9 doesn't have all required libs so add some extra ones.
+require_once($CFG->dirroot . '/report/allbackups/_autoload.php');
+require_once($CFG->dirroot . '/report/allbackups/.extlib/php-enum/Enum.php');
+
+use ZipStream\Option\Archive;
+use ZipStream\ZipStream;
 
 $delete = optional_param('delete', '', PARAM_TEXT);
 $filename = optional_param('filename', '', PARAM_TEXT);
