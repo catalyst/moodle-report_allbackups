@@ -128,6 +128,8 @@ if (!empty($downloadselected) && confirm_sesskey()) {
     if (empty($fileids)) {
 
         $fileids = array();
+        // Raise memory limit - each file is loaded in PHP memory, so this much be larger than the largest backup file.
+        raise_memory_limit(MEMORY_HUGE);
 
         // Initialize zip for saving multiple selected files at once.
         $options = new Archive();
