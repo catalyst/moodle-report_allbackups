@@ -40,3 +40,4 @@ class externalcheckboxfilter extends \user_filter_checkbox {
         return array('', array());
     }
 }
+
