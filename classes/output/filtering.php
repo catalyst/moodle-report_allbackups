@@ -37,7 +37,7 @@ require_once($CFG->dirroot.'/user/filters/lib.php');
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class filtering extends \user_filtering {
-    /** @var array List of field names to exclude from the WHERE SQL query construction */
+    /** @var array */
     private array $excludefields = array(
         "includeactivitybackups",
         "mdlbkponly"
