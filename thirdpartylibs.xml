@@ -1,0 +1,15 @@
+<?xml version="1.0"?>
+<libraries>
+    <library>
+        <location>.extlib/ZipStream</location>
+        <name>ZipStream-PHP</name>
+        <license>MIT</license>
+        <version>2.1.0</version>
+    </library>
+    <library>
+        <location>.extlib/php-enum</location>
+        <name>php-enum</name>
+        <license>MIT</license>
+        <version>1.7.7</version>
+    </library>
+</libraries>

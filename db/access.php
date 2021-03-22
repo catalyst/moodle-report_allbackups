@@ -44,22 +44,4 @@ $capabilities = [
             'manager' => CAP_ALLOW,
         ],
     ],
-
-    'report/categorybackups:view' => [
-        'riskbitmask' => RISK_PERSONAL,
-        'captype' => 'write',
-        'contextlevel' => CONTEXT_COURSECAT,
-        'archetypes' => [
-            'manager' => CAP_ALLOW,
-        ],
-    ],
-
-    'report/categorybackups:delete' => [
-        'riskbitmask' => RISK_DATALOSS,
-        'captype' => 'write',
-        'contextlevel' => CONTEXT_COURSECAT,
-        'archetypes' => [
-            'manager' => CAP_ALLOW,
-        ],
-    ],
 ];

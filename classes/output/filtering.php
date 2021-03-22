@@ -36,17 +36,6 @@ require_once($CFG->dirroot.'/user/filters/lib.php');
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class filtering extends \user_filtering {
-    /**
-     * Constructor for the filtering class
-     * @param array $fieldnames array of visible user fields
-     * @param string $baseurl base url used for submission/return, null if the same of current page
-     * @param array $extraparams extra page parameters
-     * @param bool $filterbycat limit the amount of returned categories by the users capabilities
-     */
-    public function __construct($fieldnames = null, $baseurl = null, $extraparams = null, $filterbycat=false) {
-        $this->filterbycat = $filterbycat;
-        parent::__construct($fieldnames, $baseurl, $extraparams);
-    }
 
     /**
      * Adds handling for custom fieldnames.
@@ -66,13 +55,8 @@ class filtering extends \user_filtering {
                 $advanced, 'f.filearea', $this->getfileareas());
         }
         if ($fieldname == 'coursecategory') {
-            if ($this->filterbycat) {
-                return new coursecategoryfilter('coursecategory', get_string('coursecategory', 'report_allbackups'),
-                    $advanced, 'c.category', \core_course_category::make_categories_list('report/categorybackups:view'));
-            } else {
-                return new coursecategoryfilter('coursecategory', get_string('coursecategory', 'report_allbackups'),
-                    $advanced, 'c.category', \core_course_category::make_categories_list());
-            }
+            return new coursecategoryfilter('coursecategory', get_string('coursecategory', 'report_allbackups'),
+                $advanced, 'c.category', \core_course_category::make_categories_list());
         }
         return parent::get_field($fieldname, $advanced);
     }
@@ -85,19 +69,9 @@ class filtering extends \user_filtering {
      */
     private static function getfileareas() {
         global $DB;
-        $pluginconfig = get_config('report_allbackups');
-
-        if ($pluginconfig->mdlbkponly) {
-            if ($pluginconfig->enableactivities) {
-                return array('automated' => 'automated', 'course' => 'course', 'activity' => 'activity');
-            } else {
-                return array('automated' => 'automated', 'course' => 'course');
-            }
-        } else {
-            $sql = "SELECT DISTINCT filearea, filearea as name
-                FROM {files}
-                WHERE filename like '%.mbz' and component <> 'tool_recyclebin' and filearea <> 'draft'";
-            return $DB->get_records_sql_menu($sql);
-        }
+        $sql = "SELECT DISTINCT filearea, filearea as name
+                 FROM {files}
+                 WHERE filename like '%.mbz' and component <> 'tool_recyclebin' and filearea <> 'draft'";
+        return $DB->get_records_sql_menu($sql);
     }
 }

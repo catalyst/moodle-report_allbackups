@@ -8,8 +8,9 @@ The following Moodle branches are supported
 | Moodle version     | Git branch |
 | ----------------- | ----------- |
 | Moodle 3.5 to 3.7 | MOODLE_37_STABLE |
-| Moodle 3.8 and higher | main  |
-
+| Moodle 3.8 to 3.9 | MOODLE_39_STABLE |
+| Moodle 3.10 | MOODLE_310_STABLE |
+| Moodle 3.11 and higher | main  |
 # Warm thanks #
 Thanks to Zentrum für Schulqualität und Lehrerbildung Baden-Württemberg https://zsl.kultus-bw.de/ for sponsoring the development on this plugin and allowing it to be shared with the community.
 ## License ##

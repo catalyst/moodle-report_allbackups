@@ -43,22 +43,16 @@ class allbackups_table extends \table_sql {
      * Constructor
      * @param int $uniqueid all tables have to have a unique id, this is used
      *      as a key when storing table properties like sort order in the session.
-     * @param context|null $context determine which backups can be viewed and/or managed by the user
-     * based on the context
      */
-    public function __construct($uniqueid, $context=null) {
+    public function __construct($uniqueid) {
         global $OUTPUT;
         parent::__construct($uniqueid);
 
-        // Set Download flag so we can check it before defining columns/headers to show.
-        $this->is_downloading(optional_param('download', '', PARAM_ALPHA), 'allbackups');
-
-        if ($context) {
-            $this->context = $context;
-        } else {
-            $this->context = \context_system::instance();
+        if (!optional_param('downloadallselectedfiles', 0, PARAM_ALPHA)) {
+            // Set Download flag so we can check it before defining columns/headers to show.
+            // Don't set if downloading files.
+            $this->is_downloading(optional_param('download', '', PARAM_ALPHA), 'allbackups');
         }
-        $this->useridfield = "userid";
 
         // Define the list of columns to show.
         $columns = array();
@@ -126,6 +120,7 @@ class allbackups_table extends \table_sql {
      * @return string
      */
     public function col_action($row) {
+        $context = \context_system::instance();
         $fileurl = moodle_url::make_pluginfile_url(
             $row->contextid,
             $row->component,
@@ -137,7 +132,7 @@ class allbackups_table extends \table_sql {
         );
         $output = \html_writer::link($fileurl, get_string('download'));
 
-        if (has_capability('moodle/restore:restorecourse', $this->context)) {
+        if (has_capability('moodle/restore:restorecourse', $context)) {
             $params = array();
             $params['action'] = 'choosebackupfile';
             $params['filename'] = $row->filename;
@@ -145,14 +140,14 @@ class allbackups_table extends \table_sql {
             $params['component'] = $row->component;
             $params['filearea'] = $row->filearea;
             $params['filecontextid'] = $row->contextid;
-            $params['contextid'] = $this->context->id;
+            $params['contextid'] = context_system::instance()->id;
             $params['itemid'] = $row->itemid;
             $restoreurl = new moodle_url('/backup/restorefile.php', $params);
 
             $output .= ' | '. html_writer::link($restoreurl, get_string('restore'));
         }
 
-        if (has_capability('report/allbackups:delete', $this->context)) {
+        if (has_capability('report/allbackups:delete', $context)) {
             $params = array('delete' => $row->id, 'filename' => $row->filename);
             $deleteurl = new moodle_url('/report/allbackups/index.php', $params);
             $output .= ' | '. html_writer::link($deleteurl, get_string('delete'));
