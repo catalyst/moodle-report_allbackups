@@ -38,13 +38,16 @@ $deleteselected = optional_param('deleteselectedfiles', '', PARAM_TEXT);
 $downloadselected = optional_param('downloadallselectedfiles', '', PARAM_TEXT);
 $fileids = optional_param('fileids', '', PARAM_TEXT);
 $currenttab = optional_param('tab', 'core', PARAM_TEXT);
+$includeactivities = optional_param('includeactivities', 0, PARAM_INT);
 
-admin_externalpage_setup('reportallbackups', '', array('tab' => $currenttab), '', array('pagelayout' => 'report'));
+admin_externalpage_setup('reportallbackups_report', '', array('tab' => $currenttab), '', array('pagelayout' => 'report'));
 
 $backupdest = get_config('backup', 'backup_auto_destination');
 if (empty($backupdest) && $currenttab == 'autobackup') {
     print_error(get_string("autobackupnotset", "report_allbackups"));
 }
+
+$pluginconfig = get_config('report_allbackups');
 
 $context = context_system::instance();
 if (has_capability('report/allbackups:delete', $context)) {
@@ -133,8 +136,6 @@ if (!empty($downloadselected) && confirm_sesskey()) {
     if (empty($fileids)) {
 
         $fileids = array();
-        // Raise memory limit - each file is loaded in PHP memory, so this much be larger than the largest backup file.
-        raise_memory_limit(MEMORY_HUGE);
 
         // Initialize zip for saving multiple selected files at once.
         $options = new Archive();
@@ -197,9 +198,22 @@ if (!empty($downloadselected) && confirm_sesskey()) {
 }
 
 if ($currenttab == 'autobackup') {
-    $filters = array('filename' => 0, 'timecreated' => 0);
+    $filters = array(
+        'filename' => 0,
+        'timecreated' => 0
+    );
 } else {
-    $filters = array('filename' => 0, 'realname' => 0, 'coursecategory' => 0, 'filearea' => 0, 'timecreated' => 0);
+    $filters = array(
+        'filename' => 0,
+        'realname' => 0,
+        'coursecategory' => 0,
+        'filearea' => 0,
+        'timecreated' => 0,
+        'includeactivitybackups' => 0
+    );
+    if (!$pluginconfig->mdlbkponly AND $pluginconfig->allowmdlbkponly) {
+        $filters['mdlbkponly'] = 0;
+    }
 }
 if ($currenttab == 'autobackup') {
     $table = new \report_allbackups\output\autobackups_table('autobackups');
@@ -248,23 +262,68 @@ if ($currenttab == 'autobackup') {
     $table->adddata($ufiltering);
 } else {
     list($extrasql, $params) = $ufiltering->get_sql_filter();
-    $fields = 'f.id, f.contextid, f.component, f.filearea, f.filename, f.userid, f.filesize, f.timecreated, f.filepath, f.itemid, ';
+    $fields = "f.id, f.contextid, f.component, f.filearea, f.filename, f.userid, f.filesize, f.timecreated, f.filepath, f.itemid, ";
     $fields .= get_all_user_name_fields(true, 'u');
-    $from = '{files} f JOIN {user} u on u.id = f.userid';
-    if (strpos($extrasql, 'c.category') !== false) {
-        // Category filter included, Join with course table.
-        $from .= ' JOIN {context} cx ON cx.id = f.contextid AND cx.contextlevel = '.CONTEXT_COURSE .
-                 ' JOIN {course} c ON c.id = cx.instanceid';
+
+    if ($pluginconfig->mdlbkponly
+            OR ($pluginconfig->allowmdlbkponly AND !empty($SESSION->user_filtering['mdlbkponly'][0]['value']))) {
+        $from = "(
+            SELECT * FROM {files}";
+        if (empty($SESSION->user_filtering['includeactivitybackups'][0]['value'])) {
+            $from .= "
+                WHERE filearea IN (:facourse, :faautomated, :falegacy)
+                    AND component IN (:cmpbackup, :cmpcourse)
+                ) f
+                JOIN {user} u on u.id = f.userid";
+
+            $params['facourse'] = 'course';
+            $params['faautomated'] = 'automated';
+        } else {
+            $from .= "
+                WHERE component=:cmpbackup
+                    OR (component=:cmpcourse AND filearea=:falegacy)
+                ) f
+                JOIN {user} u on u.id = f.userid";
+        }
+        if (strpos($extrasql, 'c.category') !== false) {
+            // Category filter included, Join with course table.
+            $from .= "JOIN {context} cx ON cx.id = f.contextid AND cx.contextlevel = :contextlevel
+                JOIN {course} c ON c.id = cx.instanceid";
+        }
+        $where = "f.filename LIKE :backupsuffix";
+
+        $params['falegacy'] = 'legacy';
+        $params['cmpbackup'] = 'backup';
+        $params['cmpcourse'] = 'course';
+    } else {
+        $from = "{files} f
+            JOIN {user} u on u.id = f.userid";
+        if (strpos($extrasql, 'c.category') !== false) {
+            // Category filter included, Join with course table.
+            $from .= "JOIN {context} cx ON cx.id = f.contextid AND cx.contextlevel = :contextlevel
+                JOIN {course} c ON c.id = cx.instanceid";
+        }
+        $where = "f.filename LIKE :backupsuffix
+            AND f.component <> :cmprecycle
+            AND f.filearea <> :fadraft";
+        if (empty($SESSION->user_filtering['includeactivitybackups'][0]['value'])) {
+            $where .= " AND f.filearea <> :faactivity";
+        }
+
+        $params['cmprecycle'] = 'tool_recyclebin';
+        $params['fadraft'] = 'draft';
+        $params['faactivity'] = 'activity';
     }
-    $where = "f.filename like '%.mbz' and f.component <> 'tool_recyclebin' and f.filearea <> 'draft'";
+    $params['contextlevel'] = CONTEXT_COURSE;
+    $params['backupsuffix'] = '%.mbz';
+
     if (!empty($extrasql)) {
-        $where .= " and ".$extrasql;
+        $where .= " AND ".$extrasql;
     }
 
     $table->set_sql($fields, $from, $where, $params);
     $table->out(40, true);
 }
-
 if (!$table->is_downloading()) {
 
     echo html_writer::tag('input', "", array('name' => 'deleteselectedfiles', 'type' => 'submit',

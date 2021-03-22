@@ -24,6 +24,7 @@
 
 namespace report_allbackups\output;
 use report_allbackups\filters\coursecategoryfilter;
+use report_allbackups\filters\externalcheckboxfilter;
 defined('MOODLE_INTERNAL') || die();
 
 require_once($CFG->dirroot.'/user/filters/lib.php');
@@ -36,6 +37,14 @@ require_once($CFG->dirroot.'/user/filters/lib.php');
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class filtering extends \user_filtering {
+    /**
+     * @var array $excludefields
+     * List of field names to exclude from the WHERE SQL query construction
+     */
+    private array $excludefields = array(
+        "includeactivitybackups",
+        "mdlbkponly"
+    );
 
     /**
      * Adds handling for custom fieldnames.
@@ -58,7 +67,54 @@ class filtering extends \user_filtering {
             return new coursecategoryfilter('coursecategory', get_string('coursecategory', 'report_allbackups'),
                 $advanced, 'c.category', \core_course_category::make_categories_list());
         }
+        if ($fieldname == 'includeactivitybackups') {
+            return new externalcheckboxfilter('includeactivitybackups', get_string('includeactivitybackups', 'report_allbackups'),
+                $advanced, '');
+        }
+        if ($fieldname == 'mdlbkponly') {
+            return new externalcheckboxfilter('mdlbkponly', get_string('mdlbkponly', 'report_allbackups'),
+                $advanced, '');
+        }
         return parent::get_field($fieldname, $advanced);
+    }
+
+    /**
+     * Returns SQL WHERE statement based on active user filters
+     * Excludes the field names set in $this->excludefields
+     * @param string $extra sql
+     * @param array $params named params (recommended prefix ex)
+     * @return array sql string and $params
+     */
+    public function get_sql_filter($extra='', array $params=null) {
+        global $SESSION;
+
+        $sqls = array();
+        if ($extra != '') {
+            $sqls[] = $extra;
+        }
+        $params = (array)$params;
+
+        if (!empty($SESSION->user_filtering)) {
+            foreach ($SESSION->user_filtering as $fname => $datas) {
+                if (!array_key_exists($fname, $this->_fields)
+                        OR in_array($fname, $this->excludefields, $strict = true)) {
+                    continue; // Filter not used.
+                }
+                $field = $this->_fields[$fname];
+                foreach ($datas as $i => $data) {
+                    list($s, $p) = $field->get_sql_filter($data);
+                    $sqls[] = $s;
+                    $params = $params + $p;
+                }
+            }
+        }
+
+        if (empty($sqls)) {
+            return array('', array());
+        } else {
+            $sqls = implode(' AND ', $sqls);
+            return array($sqls, $params);
+        }
     }
 
     /**
@@ -69,9 +125,20 @@ class filtering extends \user_filtering {
      */
     private static function getfileareas() {
         global $DB;
-        $sql = "SELECT DISTINCT filearea, filearea as name
-                 FROM {files}
-                 WHERE filename like '%.mbz' and component <> 'tool_recyclebin' and filearea <> 'draft'";
+        $pluginconfig = get_config('report_allbackups');
+        if ($pluginconfig->mdlbkponly
+                OR ($pluginconfig->allowmdlbkponly AND !empty($SESSION->user_filtering['mdlbkponly'][0]['value']))) {
+            // Avoid an additional database query.
+            if (!empty($SESSION->user_filtering['includeactivitybackups'][0]['value'])) {
+                return array('automated' => 'automated', 'course' => 'course', 'activity' => 'activity');
+            } else {
+                return array('automated' => 'automated', 'course' => 'course');
+            }
+        } else {
+            $sql = "SELECT DISTINCT filearea, filearea AS name
+                    FROM {files}
+                    WHERE filename LIKE '%.mbz' AND component <> 'tool_recyclebin' AND filearea <> 'draft'";
+        }
         return $DB->get_records_sql_menu($sql);
     }
 }

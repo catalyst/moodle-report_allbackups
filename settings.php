@@ -25,8 +25,25 @@
 
 defined('MOODLE_INTERNAL') || die();
 
-$ADMIN->add('reports', new admin_externalpage('reportallbackups', get_string('pluginname', 'report_allbackups'),
-    "$CFG->wwwroot/report/allbackups/index.php", 'report/allbackups:view'));
+if ($hassiteconfig) {
+    if ($ADMIN->fulltree) {
+        $settings->add(new admin_setting_configcheckbox(
+            'report_allbackups/mdlbkponly',
+            new lang_string('mdlbkponly', 'report_allbackups'),
+            new lang_string('mdlbkponly_desc', 'report_allbackups'),
+            0
+        ));
 
-// No report settings.
-$settings = null;
+        $settings->add(new admin_setting_configcheckbox(
+            'report_allbackups/allowmdlbkponly',
+            new lang_string('allowmdlbkponly', 'report_allbackups'),
+            new lang_string('allowmdlbkponly_desc', 'report_allbackups'),
+            0
+        ));
+
+        $settings->hide_if('report_allbackups/allowmdlbkponly', 'report_allbackups/mdlbkponly', 'checked');
+    }
+}
+
+$ADMIN->add('reports', new admin_externalpage('reportallbackups_report', get_string('pluginname', 'report_allbackups'),
+    "$CFG->wwwroot/report/allbackups/index.php", 'report/allbackups:view'));
