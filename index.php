@@ -307,7 +307,7 @@ if (!$table->is_downloading()) {
     $PAGE->set_title(get_string('pluginname', 'report_allbackups'));
     echo $OUTPUT->header();
     $targeturlrelativeendpoint = 'index.php';
-    $targeturl = $CFG->wwwroot.'report/allbackups/index.php';
+    $targeturl = $CFG->wwwroot.'/report/allbackups/index.php';
     $targeturltabauto = $targeturl.'?tab=autobackup';
     if ($context->contextlevel != CONTEXT_SYSTEM) {
         $targeturlrelativeendpoint .= '?contextid='.$context->id;

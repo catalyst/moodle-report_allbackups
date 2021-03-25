@@ -29,7 +29,7 @@ defined('MOODLE_INTERNAL') || die();
 use moodle_url, html_writer, context_system, RecursiveDirectoryIterator, RecursiveIteratorIterator;
 
 require_once($CFG->libdir . '/tablelib.php');
-require_once('../filteringlib.php');
+require_once(__DIR__ . '/../filteringlib.php');
 
 /**
  * Table to display automated backups stored on disk.
@@ -42,6 +42,7 @@ class autobackups_table extends \flexible_table {
     /** @var context $contextid The current context ID */
     public $context;
     /** @var array $allowedcourses A list of courses that are allowed to be managed in the current context */
+    public $allowedcourses;
 
     /**
      * autobackups_table constructor.
@@ -131,7 +132,7 @@ class autobackups_table extends \flexible_table {
                 $filename = $file->getFilename();
 
                 // Filter out backups from other courses (ones that the user is not a manager of).
-                if ($this->context->contextlevel != CONTEXT_SYSTEM && !$this->filter_context($filename, $allowedcourses)) {
+                if ($this->context->contextlevel != CONTEXT_SYSTEM && !$this->filter_context($filename, $this->allowedcourses)) {
                     continue;
                 }
 
