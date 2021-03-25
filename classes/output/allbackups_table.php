@@ -153,8 +153,10 @@ class allbackups_table extends \table_sql {
             $output .= ' | '. html_writer::link($restoreurl, get_string('restore'));
         }
 
-        if (($this->context->contextlevel == CONTEXT_SYSTEM AND has_capability('report/allbackups:delete', $this->context))
-                OR ($this->context->contextlevel == CONTEXT_COURSECAT AND has_capability('report/categorybackups:delete', $this->context))) {
+        if (($this->context->contextlevel == CONTEXT_SYSTEM
+                AND has_capability('report/allbackups:delete', $this->context))
+                OR ($this->context->contextlevel == CONTEXT_COURSECAT
+                AND has_capability('report/categorybackups:delete', $this->context))) {
             $params = array('delete' => $row->id, 'filename' => $row->filename, 'contextid' => $this->context->id);
             $deleteurl = new moodle_url('/report/allbackups/index.php', $params);
             $output .= ' | '. html_writer::link($deleteurl, get_string('delete'));

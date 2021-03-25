@@ -201,8 +201,10 @@ class autobackups_table extends \flexible_table {
             $output .= ' | '. html_writer::link($restoreurl, get_string('restore'));
         }
 
-        if (($this->context->contextlevel == CONTEXT_SYSTEM AND has_capability('report/allbackups:delete', $this->context)
-                OR ($this->context->contextlevel == CONTEXT_COURSECAT AND has_capability('report/categorybackups:delete', $this->context)))) {
+        if (($this->context->contextlevel == CONTEXT_SYSTEM
+                AND has_capability('report/allbackups:delete', $this->context)
+                OR ($this->context->contextlevel == CONTEXT_COURSECAT
+                AND has_capability('report/categorybackups:delete', $this->context)))) {
             $params['delete'] = $row->filename;
             $params['tab'] = 'autobackup';
             $deleteurl = new moodle_url('/report/allbackups/index.php', $params);
@@ -266,7 +268,7 @@ class autobackups_table extends \flexible_table {
     /**
      * Function to set the allowedcourses array
      * The array should be in the form string "$courseid" => int $courseid
-     * 
+     *
      * @param array $allowedcourses
      */
     private function set_allowed_courses_array($allowedcourses) {

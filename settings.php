@@ -41,14 +41,11 @@ if ($hassiteconfig) {
             0
         ));
 
-        $settings->hide_if('report_allbackups/categorybackupmgmt', 'report_allbackups/categorybackupmgmtonlyexisting', 'notchecked');
-
-        // $settings->add(new admin_setting_configcheckbox(
-        //     'report_allbackups/autoonlyexisting',
-        //     new lang_string('autoonlyexisting', 'report_allbackups'),
-        //     new lang_string('autoonlyexisting_desc', 'report_allbackups'),
-        //     0
-        // ));
+        $settings->hide_if(
+            'report_allbackups/categorybackupmgmt',
+            'report_allbackups/categorybackupmgmtonlyexisting',
+            'notchecked'
+        );
     }
 }
 

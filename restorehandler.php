@@ -30,7 +30,7 @@ require_login();
 
 $context = null;
 $capabilities = array('moodle/restore:restorecourse');
-if(!empty($contextid)) {
+if (!empty($contextid)) {
     $context = context::instance_by_id($contextid);
     $capabilities[] = 'report/categorybackups:view';
 } else {
