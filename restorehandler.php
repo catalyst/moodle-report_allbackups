@@ -25,8 +25,19 @@
 require_once('../../config.php');
 
 $filename = required_param('filename', PARAM_FILE);
+$contextid = intval(optional_param('contextid', 0, PARAM_INT));
 require_login();
-require_all_capabilities(array('report/allbackups:view', 'moodle/restore:restorecourse'), context_system::instance());
+
+$context = null;
+$capabilities = array('moodle/restore:restorecourse');
+if(!empty($contextid)) {
+    $context = context::instance_by_id($contextid);
+    $capabilities[] = 'report/categorybackups:view';
+} else {
+    $context = context_system::instance();
+    $capabilities[] = 'report/allbackups:view';
+}
+require_all_capabilities($capabilities, $context);
 
 // Create file based on filename.
 // Make sure backup dir is set.
