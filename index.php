@@ -109,8 +109,7 @@ if ($context->contextlevel == CONTEXT_COURSECAT) {
     // Add navigation link to the category this page belongs to.
     $PAGE->navbar->ignore_active();
     $PAGE->navbar->add($context->get_context_name(false), new moodle_url('/admin/index.php', array()));
-}
-else {
+} else {
     echo $OUTPUT->header();
     \core\notification::error(get_string('error:wrongcontext', 'report_allbackups'));
     echo $OUTPUT->footer();
