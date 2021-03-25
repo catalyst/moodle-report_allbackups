@@ -25,6 +25,8 @@
 defined('MOODLE_INTERNAL') || die();
 
 /**
+ * Fetch an associative array of courses that are under the $context->path
+ *
  * @param context $context The context under which the courses should reside
  * @return array Array of course IDs
  */
@@ -47,6 +49,9 @@ function get_courses_under_context($context) {
 }
 
 /**
+ * Parse the Moodle backup filename, get its course ID number and check
+ * if it is included in the provided array
+ *
  * @param string $filename Filename of the automatic backup file
  * @param array $array Array of course IDs to look in
  * @return bool|int
