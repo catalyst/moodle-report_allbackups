@@ -85,14 +85,14 @@ $PAGE->set_title(get_string('pluginname', 'report_allbackups'));
 $PAGE->set_heading(get_string('pluginname', 'report_allbackups'));
 // Set page layout as admin.
 $PAGE->set_pagelayout('report');
-// Add navigation link to the category this page belongs to.
-$PAGE->navbar->ignore_active();
 // Check plugin config for category backup management mode.
 $pluginconfig = get_config('report_allbackups');
 $allowedcourses = array();
 $filterbycat = false;
-if ($context->contextlevel != CONTEXT_SYSTEM) {
+if ($context->contextlevel == CONTEXT_COURSECAT) {
     $filterbycat = true;
+    // Add navigation link to the category this page belongs to.
+    $PAGE->navbar->ignore_active();
     $PAGE->navbar->add($context->get_context_name(false), new moodle_url('/course/index.php', array(
         'categoryid' => $context->instanceid
     )));
@@ -105,8 +105,16 @@ if ($context->contextlevel != CONTEXT_SYSTEM) {
     if ($pluginconfig->categorybackupmgmtonlyexisting) {
         $allowedcourses = get_courses_under_context($context);
     }
-} else {
+} else if ($context->contextlevel == CONTEXT_SYSTEM) {
+    // Add navigation link to the category this page belongs to.
+    $PAGE->navbar->ignore_active();
     $PAGE->navbar->add($context->get_context_name(false), new moodle_url('/admin/index.php', array()));
+}
+else {
+    echo $OUTPUT->header();
+    \core\notification::error(get_string('error:wrongcontext', 'report_allbackups'));
+    echo $OUTPUT->footer();
+    exit;
 }
 
 $backupdest = get_config('backup', 'backup_auto_destination');
