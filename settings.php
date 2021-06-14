@@ -42,8 +42,8 @@ if ($hassiteconfig) {
         ));
 
         $settings->hide_if(
-            'report_allbackups/categorybackupmgmt',
             'report_allbackups/categorybackupmgmtonlyexisting',
+            'report_allbackups/categorybackupmgmt',
             'notchecked'
         );
     }
