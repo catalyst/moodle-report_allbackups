@@ -36,6 +36,20 @@ require_once($CFG->dirroot.'/user/filters/lib.php');
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class filtering extends \user_filtering {
+    /** @var bool Enable filtering by categories, where the user has the correct permissions */
+    private $filterbycat;
+
+    /**
+     * Constructor for the filtering class
+     * @param array $fieldnames array of visible user fields
+     * @param string $baseurl base url used for submission/return, null if the same of current page
+     * @param array $extraparams extra page parameters
+     * @param bool $filterbycat limit the amount of returned categories by the users capabilities
+     */
+    public function __construct($fieldnames = null, $baseurl = null, $extraparams = null, $filterbycat=false) {
+        $this->filterbycat = $filterbycat;
+        parent::__construct($fieldnames, $baseurl, $extraparams);
+    }
 
     /**
      * Adds handling for custom fieldnames.
@@ -55,8 +69,13 @@ class filtering extends \user_filtering {
                 $advanced, 'f.filearea', $this->getfileareas());
         }
         if ($fieldname == 'coursecategory') {
-            return new coursecategoryfilter('coursecategory', get_string('coursecategory', 'report_allbackups'),
-                $advanced, 'c.category', \core_course_category::make_categories_list());
+            if ($this->filterbycat) {
+                return new coursecategoryfilter('coursecategory', get_string('coursecategory', 'report_allbackups'),
+                    $advanced, 'c.category', \core_course_category::make_categories_list('report/categorybackups:view'));
+            } else {
+                return new coursecategoryfilter('coursecategory', get_string('coursecategory', 'report_allbackups'),
+                    $advanced, 'c.category', \core_course_category::make_categories_list());
+            }
         }
         return parent::get_field($fieldname, $advanced);
     }

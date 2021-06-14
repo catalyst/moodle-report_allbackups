@@ -29,6 +29,7 @@ defined('MOODLE_INTERNAL') || die();
 use moodle_url, html_writer, context_system, RecursiveDirectoryIterator, RecursiveIteratorIterator;
 
 require_once($CFG->libdir . '/tablelib.php');
+require_once(__DIR__ . '/../filteringlib.php');
 
 /**
  * Table to display automated backups stored on disk.
@@ -38,15 +39,24 @@ require_once($CFG->libdir . '/tablelib.php');
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class autobackups_table extends \flexible_table {
+    /** @var context $contextid The current context ID */
+    public $context;
+    /** @var array $allowedcourses A list of courses that are allowed to be managed in the current context */
+    public $allowedcourses;
+
     /**
      * autobackups_table constructor.
      *
      * @param string $uniqueid
+     * @param context $context
+     * @param array $allowedcourses
      * @throws \coding_exception
      */
-    public function __construct($uniqueid) {
+    public function __construct($uniqueid, $context, $allowedcourses = array()) {
         global $PAGE, $OUTPUT;
         parent::__construct($uniqueid);
+        $this->context = $context;
+        $this->useridfield = 'userid';
         $url = $PAGE->url;
         $url->param('tab', 'autobackup');
         $this->define_baseurl($url);
@@ -55,6 +65,11 @@ class autobackups_table extends \flexible_table {
             // Set Download flag so we can check it before defining columns/headers to show.
             // Don't set if downloading files.
             $this->is_downloading(optional_param('download', '', PARAM_ALPHA), 'allbackups');
+        }
+
+        if ($context->contextlevel != CONTEXT_SYSTEM && !empty($allowedcourses)) {
+            // Set the list of allowed courses.
+            $this->set_allowed_courses_array($allowedcourses);
         }
 
         // Define the list of columns to show.
@@ -99,17 +114,27 @@ class autobackups_table extends \flexible_table {
      * @throws \dml_exception
      */
     public function adddata() {
-        global $SESSION;
+        global $SESSION, $DB;
 
         $rows = array();
         $backupdest = get_config('backup', 'backup_auto_destination');
         $directory = new RecursiveDirectoryIterator($backupdest);
         $iterator = new RecursiveIteratorIterator($directory);
 
+        $allowedcourses = array();
+        if ($this->context->contextlevel != CONTEXT_SYSTEM && empty($this->allowedcourses)) {
+            $this->allowedcourses = get_courses_under_context($this->context);
+        }
+
         foreach ($iterator as $file) {
             // Sanity check and only include .mbz files.
             if ($file->isFile() && $file->getExtension() == 'mbz') {
                 $filename = $file->getFilename();
+
+                // Filter out backups from other courses (ones that the user is not a manager of).
+                if ($this->context->contextlevel != CONTEXT_SYSTEM && !$this->filter_context($filename, $this->allowedcourses)) {
+                    continue;
+                }
 
                 // Check against filename filters.
                 if (!$this->filter_filename($filename)) {
@@ -155,9 +180,8 @@ class autobackups_table extends \flexible_table {
      */
     public function col_action($row) {
         global $USER;
-        $context = \context_system::instance();
         $fileurl = moodle_url::make_pluginfile_url(
-            $context->id,
+            $this->context->id,
             'report_allbackups',
             'autobackups',
             null,
@@ -167,16 +191,23 @@ class autobackups_table extends \flexible_table {
         );
         $output = \html_writer::link($fileurl, get_string('download'));
 
-        if (has_capability('moodle/restore:restorecourse', $context)) {
-            $params = array();
-            $params['filename'] = $row->filename;
+        $params = array('filename' => $row->filename);
+        if ($this->context->contextlevel != CONTEXT_SYSTEM) {
+            $params['contextid'] = $this->context->id;
+        }
+
+        if (has_capability('moodle/restore:restorecourse', $this->context)) {
             $restoreurl = new moodle_url('/report/allbackups/restorehandler.php', $params);
 
             $output .= ' | '. html_writer::link($restoreurl, get_string('restore'));
         }
 
-        if (has_capability('report/allbackups:delete', $context)) {
-            $params = array('delete' => $row->filename, 'filename' => $row->filename, 'tab' => 'autobackup');
+        if (($this->context->contextlevel == CONTEXT_SYSTEM
+                AND has_capability('report/allbackups:delete', $this->context)
+                OR ($this->context->contextlevel == CONTEXT_COURSECAT
+                AND has_capability('report/categorybackups:delete', $this->context)))) {
+            $params['delete'] = $row->filename;
+            $params['tab'] = 'autobackup';
             $deleteurl = new moodle_url('/report/allbackups/index.php', $params);
             $output .= ' | '. html_writer::link($deleteurl, get_string('delete'));
         }
@@ -224,6 +255,26 @@ class autobackups_table extends \flexible_table {
         return $OUTPUT->render($itemcheckbox);
     }
 
+    /**
+     * Function to filter results using user context.
+     *
+     * @param string $filename
+     * @param array $allowedcourses
+     * @return bool|int
+     */
+    private function filter_context($filename, $allowedcourses) {
+        return is_autobackup_filename_in_course_array($filename, $allowedcourses);
+    }
+
+    /**
+     * Function to set the allowedcourses array
+     * The array should be in the form string "$courseid" => int $courseid
+     *
+     * @param array $allowedcourses
+     */
+    private function set_allowed_courses_array($allowedcourses) {
+        $this->allowedcourses = $allowedcourses;
+    }
 
     /**
      * Function to filter results using the filename.
