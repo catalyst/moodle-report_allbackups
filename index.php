@@ -188,6 +188,7 @@ if (!empty($downloadselected) && confirm_sesskey()) {
             }
         }
         $zip->finish();
+        exit;
     }
 }
 
