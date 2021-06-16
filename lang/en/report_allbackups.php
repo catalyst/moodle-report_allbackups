@@ -48,3 +48,10 @@ $string['plugindescription'] = 'This report shows all *.mbz (Moodle backup files
 $string['pluginname'] = 'All backups';
 $string['privacy:metadata'] = 'The all backups report plugin does not store any personal data';
 $string['standardbackups'] = 'Standard backups';
+$string['mdlbkponly'] = 'Moodle backups only';
+$string['mdlbkponly_desc'] = 'Only include backups of courses, created on this Moodle instance. This option changes the way backups are located in the database and might lower the query execution time on large databases.';
+$string['allowmdlbkponly'] = 'Allow users to select Moodle backups only option';
+$string['allowmdlbkponly_desc'] = 'Allow the users to choose wether they want to only display the backups of courses, created on this Moodle instance. Bear in mind, that this option changes the way backups are located in the database. If the users search for all backups, including the uploaded user files, the search might take longer to execute, depending on your database.';
+$string['includeactivitybackups'] = 'Include activity backups';
+$string['includeactivitybackups_desc'] = 'Include activity backups in the report';
+
