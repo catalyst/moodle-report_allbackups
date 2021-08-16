@@ -39,21 +39,30 @@
  * @throws require_login_exception
  */
 function report_allbackups_pluginfile($course,
-                           $cm,
-                           context $context,
-                           $filearea,
-                           $args,
-                           $forcedownload,
-                           array $options = array()) {
-
-    if ($context->contextlevel != CONTEXT_SYSTEM) {
-        return false;
-    }
-
+        $cm,
+        context $context,
+        $filearea,
+        $args,
+        $forcedownload,
+        array $options = array()) {
     require_login($course, false, $cm);
-    if (!has_capability('report/allbackups:view', $context)) {
+
+    if ($context->contextlevel == CONTEXT_SYSTEM) {
+        if (!has_capability('report/allbackups:view', $context)) {
+            return false;
+        }
+    } else if ($context->contextlevel == CONTEXT_COURSECAT) {
+        $pluginconfig = get_config('report_allbackups');
+        if (!$pluginconfig->categorybackupmgmt) {
+            return false;
+        }
+        if (!has_capability('report/categorybackups:view', $context)) {
+            return false;
+        }
+    } else {
         return false;
     }
+
     // Make sure backup dir is set.
     $backupdest = get_config('backup', 'backup_auto_destination');
     if (empty($backupdest)) {
@@ -79,3 +88,34 @@ function report_allbackups_pluginfile($course,
     }
 }
 
+/**
+ * Extend category navigation to display a link to the category backups.
+ *
+ * @param navigation_node $settingsnav the navigation object
+ * @param context_coursecat $context the context of the current category
+ */
+function report_allbackups_extend_navigation_category_settings(navigation_node $settingsnav, context_coursecat $context) {
+    global $CFG, $PAGE, $USER;
+    if (!$PAGE->category OR $USER->id <= 1) {
+        // Only add this settings item on non-site category pages.
+        return;
+    }
+    if (!has_capability('report/categorybackups:view', $context)) {
+        // Require this capability on the course category context.
+        return;
+    }
+    $config = get_config('report_allbackups');
+    if (!$config->categorybackupmgmt) {
+        // Require category backup management mode to be enabled in settings.
+        return;
+    }
+    // Add category settings node.
+    $settingsnav->add(
+        get_string('pluginname', 'report_allbackups'),
+        new moodle_url('/report/allbackups/index.php', array("contextid" => $context->id)),
+        navigation_node::NODETYPE_LEAF,
+        'categorybackups',
+        'categorybackups',
+        new pix_icon('i/files', 'files')
+    );
+}

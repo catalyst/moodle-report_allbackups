@@ -23,11 +23,15 @@
  */
 
 require_once('../../config.php');
-require_once($CFG->libdir . '/adminlib.php');
+require_login();
+
+require_once($CFG->libdir.'/filelib.php');
+require_once($CFG->libdir . '/accesslib.php');
 
 // Moodle 3.9 doesn't have all required libs so add some extra ones.
 require_once($CFG->dirroot . '/report/allbackups/_autoload.php');
 require_once($CFG->dirroot . '/report/allbackups/.extlib/php-enum/Enum.php');
+require_once($CFG->dirroot . '/report/allbackups/classes/filteringlib.php');
 
 use ZipStream\Option\Archive;
 use ZipStream\ZipStream;
@@ -38,16 +42,87 @@ $deleteselected = optional_param('deleteselectedfiles', '', PARAM_TEXT);
 $downloadselected = optional_param('downloadallselectedfiles', '', PARAM_TEXT);
 $fileids = optional_param('fileids', '', PARAM_TEXT);
 $currenttab = optional_param('tab', 'core', PARAM_TEXT);
+$contextid = optional_param('contextid', 0, PARAM_INT);
 
-admin_externalpage_setup('reportallbackups', '', array('tab' => $currenttab), '', array('pagelayout' => 'report'));
+// Define URL params.
+$urlparams = array("tab" => $currenttab);
+if (!empty($delete)) {
+    $urlparams['delete'] = $delete;
+}
+if (!empty($deleteselected)) {
+    $urlparams['deleteselectedfiles'] = $deleteselected;
+}
+if (!empty($downloadselected)) {
+    $urlparams['downloadallselectedfiles'] = $downloadselected;
+}
+if (!empty($filename)) {
+    $urlparams['filename'] = $filename;
+}
+if (!empty($fileids)) {
+    $urlparams['fileids'] = $fileids;
+}
+if (!empty($contextid)) {
+    $urlparams['contextid'] = $contextid;
+}
+
+// Define context.
+$context = null;
+if (!empty($contextid)) {
+    $context = context::instance_by_id($contextid);
+} else {
+    $context = context_system::instance();
+}
+
+
+$PAGE->set_url(new moodle_url('/report/allbackups/index.php', $urlparams));
+$PAGE->set_context($context);
+// Set this page as an instance of a category.
+if ($context->contextlevel == CONTEXT_COURSECAT) {
+    $PAGE->set_category_by_id($context->instanceid);
+}
+// Set page heading and title.
+$PAGE->set_title(get_string('pluginname', 'report_allbackups'));
+$PAGE->set_heading(get_string('pluginname', 'report_allbackups'));
+// Set page layout as admin.
+$PAGE->set_pagelayout('report');
+// Check plugin config for category backup management mode.
+$pluginconfig = get_config('report_allbackups');
+$allowedcourses = array();
+$filterbycat = false;
+if ($context->contextlevel == CONTEXT_COURSECAT) {
+    $filterbycat = true;
+    // Add navigation link to the category this page belongs to.
+    $PAGE->navbar->ignore_active();
+    $PAGE->navbar->add($context->get_context_name(false), new moodle_url('/course/index.php', array(
+        'categoryid' => $context->instanceid
+    )));
+    if (!$pluginconfig->categorybackupmgmt) {
+        echo $OUTPUT->header();
+        \core\notification::error(get_string('error:categorybackupmgmtmodedisabled', 'report_allbackups'));
+        echo $OUTPUT->footer();
+        exit;
+    }
+    if ($pluginconfig->categorybackupmgmtonlyexisting) {
+        $allowedcourses = get_courses_under_context($context);
+    }
+} else if ($context->contextlevel == CONTEXT_SYSTEM) {
+    // Add navigation link to the category this page belongs to.
+    $PAGE->navbar->ignore_active();
+    $PAGE->navbar->add($context->get_context_name(false), new moodle_url('/admin/index.php', array()));
+} else {
+    echo $OUTPUT->header();
+    \core\notification::error(get_string('error:wrongcontext', 'report_allbackups'));
+    echo $OUTPUT->footer();
+    exit;
+}
 
 $backupdest = get_config('backup', 'backup_auto_destination');
 if (empty($backupdest) && $currenttab == 'autobackup') {
     print_error(get_string("autobackupnotset", "report_allbackups"));
 }
 
-$context = context_system::instance();
-if (has_capability('report/allbackups:delete', $context)) {
+if (($context->contextlevel == CONTEXT_SYSTEM AND has_capability('report/allbackups:delete', $context))
+        OR ($context->contextlevel == CONTEXT_COURSECAT AND has_capability('report/categorybackups:delete', $context))) {
 
     if (!empty($deleteselected) || !empty($delete)) { // Delete action.
 
@@ -76,11 +151,23 @@ if (has_capability('report/allbackups:delete', $context)) {
             }
             // Display confirmation box - are you really sure you want to delete this file?
             echo $OUTPUT->header();
-            $params = array('deleteselectedfiles' => 1, 'confirm' => 1, 'fileids' => implode(',', $fileids), 'tab' => $currenttab);
+            $params = array(
+                'deleteselectedfiles' => 1,
+                'confirm' => 1,
+                'fileids' => implode(',', $fileids),
+                'tab' => $currenttab,
+            );
+            if (!empty($contextid)) {
+                $params['contextid'] = $contextid;
+            }
             $deleteurl = new moodle_url($PAGE->url, $params);
+            $deleteurltarget = $CFG->wwwroot . '/report/allbackups/index.php';
+            if (!empty($contextid)) {
+                $deleteurltarget .= '?contextid='.$context->id;
+            }
             $numfiles = count($fileids);
             echo $OUTPUT->confirm(get_string('areyousurebulk', 'report_allbackups', $numfiles),
-                $deleteurl, $CFG->wwwroot . '/report/allbackups/index.php');
+                $deleteurl, $deleteurltarget);
 
             echo $OUTPUT->footer();
             exit;
@@ -91,12 +178,14 @@ if (has_capability('report/allbackups:delete', $context)) {
                 if ($currenttab == 'autobackup') {
                     // Check nothing weird passed in filename - protect against directory traversal etc.
                     // Check to make sure this is an mbz file.
+                    // Check to make sure the user is allowed to delete this course backup.
                     if ($id == clean_param($id, PARAM_FILE) &&
-                        pathinfo($id, PATHINFO_EXTENSION) == 'mbz' &&
-                        is_readable($backupdest .'/'. $id)) {
+                            pathinfo($id, PATHINFO_EXTENSION) == 'mbz' &&
+                            is_readable($backupdest .'/'. $id) &&
+                            (empty($allowedcourses) || is_autobackup_filename_in_course_array($id, $allowedcourses))) {
                         unlink($backupdest .'/'. $id);
                         $event = \report_allbackups\event\autobackup_deleted::create(array(
-                            'context' => context_system::instance(),
+                            'context' => $context,
                             'objectid' => null,
                             'other' => array('filename' => $id)));
                         $event->trigger();
@@ -109,7 +198,9 @@ if (has_capability('report/allbackups:delete', $context)) {
                     $file = $fs->get_file_by_id((int)$id);
                     $fileext = pathinfo($file->get_filename(), PATHINFO_EXTENSION);
                     // Make sure the file exists, and it is a backup file we are deleting.
-                    if (!empty($file) && $fileext == 'mbz') {
+                    if (!empty($file) &&
+                            $fileext == 'mbz' &&
+                            has_capability('moodle/course:delete', context::instance_by_id($file->get_contextid()))) {
                         $file->delete();
                         $event = \report_allbackups\event\backup_deleted::create(array(
                             'context' => context::instance_by_id($file->get_contextid()),
@@ -157,12 +248,12 @@ if (!empty($downloadselected) && confirm_sesskey()) {
             foreach ($fileids as $filename) {
 
                 if ($filename == clean_param($filename, PARAM_FILE) &&
-                    pathinfo($filename, PATHINFO_EXTENSION) == 'mbz' &&
-                    is_readable($backupdest .'/'. $filename)) {
-
-                        $file = $backupdest.'/'.$filename;
-                        $filecontents = file_get_contents($file, FILE_USE_INCLUDE_PATH);
-                        $zip->addFile($filename, $filecontents);
+                        pathinfo($filename, PATHINFO_EXTENSION) == 'mbz' &&
+                        is_readable($backupdest .'/'. $filename) &&
+                        (empty($allowedcourses) || is_autobackup_filename_in_course_array($filename, $allowedcourses))) {
+                    $file = $backupdest.'/'.$filename;
+                    $filecontents = file_get_contents($file, FILE_USE_INCLUDE_PATH);
+                    $zip->addFile($filename, $filecontents);
                 } else {
                     \core\notification::add(get_string('couldnotdownloadfile', 'report_allbackups'));
                 }
@@ -203,25 +294,33 @@ if ($currenttab == 'autobackup') {
     $filters = array('filename' => 0, 'realname' => 0, 'coursecategory' => 0, 'filearea' => 0, 'timecreated' => 0);
 }
 if ($currenttab == 'autobackup') {
-    $table = new \report_allbackups\output\autobackups_table('autobackups');
+    $table = new \report_allbackups\output\autobackups_table('autobackups', $context, $allowedcourses);
 } else {
-    $table = new \report_allbackups\output\allbackups_table('allbackups');
+    $table = new \report_allbackups\output\allbackups_table('allbackups', $context);
     $table->define_baseurl($PAGE->url);
 }
 
-$ufiltering = new \report_allbackups\output\filtering($filters, $PAGE->url);
+$ufiltering = new \report_allbackups\output\filtering($filters, $PAGE->url, null, $filterbycat);
 if (!$table->is_downloading()) {
     // Only print headers if not asked to download data
     // Print the page header.
     $PAGE->set_title(get_string('pluginname', 'report_allbackups'));
     echo $OUTPUT->header();
+    $targeturlrelativeendpoint = 'index.php';
+    $targeturl = $CFG->wwwroot.'/report/allbackups/index.php';
+    $targeturltabauto = $targeturl.'?tab=autobackup';
+    if ($context->contextlevel != CONTEXT_SYSTEM) {
+        $targeturlrelativeendpoint .= '?contextid='.$context->id;
+        $targeturl .= '?contextid='.$context->id;
+        $targeturltabauto .= '&contextid='.$context->id;
+    }
     if (!empty(get_config('backup', 'backup_auto_destination'))) {
         $row = $tabs = array();
         $row[] = new tabobject('core',
-            $CFG->wwwroot.'/report/allbackups',
+            $targeturl,
             get_string('standardbackups', 'report_allbackups'));
         $row[] = new tabobject('autobackup',
-            $CFG->wwwroot.'/report/allbackups/index.php?tab=autobackup',
+            $targeturltabauto,
             get_string('autobackup', 'report_allbackups'));
         $tabs[] = $row;
         print_tabs($tabs, $currenttab);
@@ -234,7 +333,7 @@ if (!$table->is_downloading()) {
     $ufiltering->display_add();
     $ufiltering->display_active();
 
-    echo '<form action="index.php" method="post" id="allbackupsform">';
+    echo '<form action="'.$targeturlrelativeendpoint.'" method="post" id="allbackupsform">';
     echo html_writer::start_div();
     echo html_writer::tag('input', '', array('type' => 'hidden', 'name' => 'sesskey', 'value' => sesskey()));
     echo html_writer::tag('input', '', array('type' => 'hidden', 'name' => 'returnto', 'value' => s($PAGE->url->out(false))));
@@ -252,12 +351,16 @@ if ($currenttab == 'autobackup') {
     $fields = 'f.id, f.contextid, f.component, f.filearea, f.filename, f.userid, f.filesize, f.timecreated, f.filepath, f.itemid, ';
     $fields .= get_all_user_name_fields(true, 'u');
     $from = '{files} f JOIN {user} u on u.id = f.userid';
-    if (strpos($extrasql, 'c.category') !== false) {
+    if (strpos($extrasql, 'c.category') !== false OR $context->contextlevel != CONTEXT_SYSTEM) {
         // Category filter included, Join with course table.
-        $from .= ' JOIN {context} cx ON cx.id = f.contextid AND cx.contextlevel = '.CONTEXT_COURSE .
+        $from .= ' JOIN {context} cx ON cx.id = f.contextid AND cx.contextlevel = '.CONTEXT_COURSE.
                  ' JOIN {course} c ON c.id = cx.instanceid';
     }
     $where = "f.filename like '%.mbz' and f.component <> 'tool_recyclebin' and f.filearea <> 'draft'";
+    if ($context->contextlevel != CONTEXT_SYSTEM) {
+        $where .= " and cx.path like :cxpath";
+        $params['cxpath'] = $context->path.'%';
+    }
     if (!empty($extrasql)) {
         $where .= " and ".$extrasql;
     }
