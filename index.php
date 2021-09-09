@@ -245,7 +245,7 @@ if ($currenttab == 'autobackup') {
 } else {
     list($extrasql, $params) = $ufiltering->get_sql_filter();
     $fields = 'f.id, f.contextid, f.component, f.filearea, f.filename, f.userid, f.filesize, f.timecreated, f.filepath, f.itemid';
-    $fields .= \core\user_fields::for_name()->get_sql('u')->selects;
+    $fields .= \core_user\fields::for_name()->get_sql('u')->selects;
 
     $from = '{files} f JOIN {user} u on u.id = f.userid';
     if (strpos($extrasql, 'c.category') !== false) {
