@@ -23,6 +23,7 @@
  */
 use ZipStream\Option\Archive;
 use ZipStream\ZipStream;
+use report_allbackups\output\allbackups_reportbuilderapi_table;
 
 require_once('../../config.php');
 require_once($CFG->libdir . '/adminlib.php');
@@ -200,7 +201,7 @@ if ($currenttab == 'autobackup') {
 if ($currenttab == 'autobackup') {
     $table = new \report_allbackups\output\autobackups_table('autobackups');
 } else {
-    $table = new \report_allbackups\output\allbackups_table('allbackups');
+    $table = new \report_allbackups\output\allbackups_reportbuilderapi_table('allbackups');
     $table->define_baseurl($PAGE->url);
 }
 
@@ -259,7 +260,7 @@ if ($currenttab == 'autobackup') {
     }
 
     $table->set_sql($fields, $from, $where, $params);
-    $table->out(40, true);
+    // $table->out(40, true);
 }
 
 if (!$table->is_downloading()) {
