@@ -27,5 +27,5 @@ defined('MOODLE_INTERNAL') || die();
 $plugin->component = 'report_allbackups';
 $plugin->release = '0.1.2';
 $plugin->version = 2021061600;
-$plugin->requires = 2021031200; // Requires 3.11.
+$plugin->requires = 2021091100; // Requires 4.0
 $plugin->maturity = MATURITY_STABLE;
