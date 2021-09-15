@@ -23,9 +23,17 @@
  */
 use ZipStream\Option\Archive;
 use ZipStream\ZipStream;
-use report_allbackups\output\allbackups_reportbuilderapi_table;
+
+use core_reportbuilder\system_report_factory;
+use local_reportbuilderdemo\course_system_report;
 
 require_once('../../config.php');
+require_login();
+
+$PAGE->set_url(new moodle_url('/report/allbackups/index.php'));
+$PAGE->set_context(context_system::instance());
+$PAGE->set_title(get_string('course', 'local_reportbuilderdemo'));
+
 require_once($CFG->libdir . '/adminlib.php');
 
 $delete = optional_param('delete', '', PARAM_TEXT);
@@ -42,8 +50,7 @@ if (empty($backupdest) && $currenttab == 'autobackup') {
     print_error(get_string("autobackupnotset", "report_allbackups"));
 }
 
-$context = context_system::instance();
-if (has_capability('report/allbackups:delete', $context)) {
+if (has_capability('report/allbackups:delete', context_system::instance())) {
 
     if (!empty($deleteselected) || !empty($delete)) { // Delete action.
 
@@ -193,88 +200,95 @@ if (!empty($downloadselected) && confirm_sesskey()) {
     }
 }
 
-if ($currenttab == 'autobackup') {
-    $filters = array('filename' => 0, 'timecreated' => 0);
-} else {
-    $filters = array('filename' => 0, 'realname' => 0, 'coursecategory' => 0, 'filearea' => 0, 'timecreated' => 0);
-}
-if ($currenttab == 'autobackup') {
-    $table = new \report_allbackups\output\autobackups_table('autobackups');
-} else {
-    $table = new \report_allbackups\output\allbackups_reportbuilderapi_table('allbackups');
-    $table->define_baseurl($PAGE->url);
-}
+// Code we care being overhaulled probablt about here
 
-$ufiltering = new \report_allbackups\output\filtering($filters, $PAGE->url);
-if (!$table->is_downloading()) {
-    // Only print headers if not asked to download data
-    // Print the page header.
-    $PAGE->set_title(get_string('pluginname', 'report_allbackups'));
+// if ($currenttab == 'autobackup') {
+//     $filters = array('filename' => 0, 'timecreated' => 0);
+// } else {
+//     $filters = array('filename' => 0, 'realname' => 0, 'coursecategory' => 0, 'filearea' => 0, 'timecreated' => 0);
+// }
+// if ($currenttab == 'autobackup') {
+//     $table = new \report_allbackups\output\autobackups_table('autobackups');
+// } else {
+//     $table = new \report_allbackups\output\allbackups_table('allbackups');
+//     $table->define_baseurl($PAGE->url);
+// }
+
+// $ufiltering = new \report_allbackups\output\filtering($filters, $PAGE->url);
+// if (!$table->is_downloading()) {
+//     // Only print headers if not asked to download data
+//     // Print the page header.
+//     $PAGE->set_title(get_string('pluginname', 'report_allbackups'));
     echo $OUTPUT->header();
-    if (!empty(get_config('backup', 'backup_auto_destination'))) {
-        $row = $tabs = array();
-        $row[] = new tabobject('core',
-            $CFG->wwwroot.'/report/allbackups',
-            get_string('standardbackups', 'report_allbackups'));
-        $row[] = new tabobject('autobackup',
-            $CFG->wwwroot.'/report/allbackups/index.php?tab=autobackup',
-            get_string('autobackup', 'report_allbackups'));
-        $tabs[] = $row;
-        print_tabs($tabs, $currenttab);
-    }
-    if ($currenttab == 'autobackup') {
-        echo $OUTPUT->box(get_string('autobackup_description', 'report_allbackups'));
-    } else {
-        echo $OUTPUT->box(get_string('plugindescription', 'report_allbackups'));
-    }
-    $ufiltering->display_add();
-    $ufiltering->display_active();
+    // Create report instance.
+    $report = system_report_factory::create(course_system_report::class, context_system::instance());
+    echo $report->output();
 
-    echo '<form action="index.php" method="post" id="allbackupsform">';
-    echo html_writer::start_div();
-    echo html_writer::tag('input', '', array('type' => 'hidden', 'name' => 'sesskey', 'value' => sesskey()));
-    echo html_writer::tag('input', '', array('type' => 'hidden', 'name' => 'returnto', 'value' => s($PAGE->url->out(false))));
-    echo html_writer::tag('input', '', array('type' => 'hidden', 'name' => 'tab', 'value' => $currenttab));
-} else {
-    // Trigger downloaded event.
-    $event = \report_allbackups\event\report_downloaded::create();
-    $event->trigger();
-}
-if ($currenttab == 'autobackup') {
-    // Get list of files from backup.
-    $table->adddata($ufiltering);
-} else {
-    list($extrasql, $params) = $ufiltering->get_sql_filter();
-    $fields = 'f.id, f.contextid, f.component, f.filearea, f.filename, f.userid, f.filesize, f.timecreated, f.filepath, f.itemid';
-    $fields .= \core_user\fields::for_name()->get_sql('u')->selects;
 
-    $from = '{files} f JOIN {user} u on u.id = f.userid';
-    if (strpos($extrasql, 'c.category') !== false) {
-        // Category filter included, Join with course table.
-        $from .= ' JOIN {context} cx ON cx.id = f.contextid AND cx.contextlevel = '.CONTEXT_COURSE .
-                 ' JOIN {course} c ON c.id = cx.instanceid';
-    }
-    $where = "f.filename like '%.mbz' and f.component <> 'tool_recyclebin' and f.filearea <> 'draft'";
-    if (!empty($extrasql)) {
-        $where .= " and ".$extrasql;
-    }
+//     if (!empty(get_config('backup', 'backup_auto_destination'))) {
+//         $row = $tabs = array();
+//         $row[] = new tabobject('core',
+//             $CFG->wwwroot.'/report/allbackups',
+//             get_string('standardbackups', 'report_allbackups'));
+//         $row[] = new tabobject('autobackup',
+//             $CFG->wwwroot.'/report/allbackups/index.php?tab=autobackup',
+//             get_string('autobackup', 'report_allbackups'));
+//         $tabs[] = $row;
+//         print_tabs($tabs, $currenttab);
+//     }
+//     if ($currenttab == 'autobackup') {
+//         echo $OUTPUT->box(get_string('autobackup_description', 'report_allbackups'));
+//     } else {
+//         echo $OUTPUT->box(get_string('plugindescription', 'report_allbackups'));
+//     }
+//     $ufiltering->display_add();
+//     $ufiltering->display_active();
 
-    $table->set_sql($fields, $from, $where, $params);
-    // $table->out(40, true);
-}
+//     echo '<form action="index.php" method="post" id="allbackupsform">';
+//     echo html_writer::start_div();
+//     echo html_writer::tag('input', '', array('type' => 'hidden', 'name' => 'sesskey', 'value' => sesskey()));
+//     echo html_writer::tag('input', '', array('type' => 'hidden', 'name' => 'returnto', 'value' => s($PAGE->url->out(false))));
+//     echo html_writer::tag('input', '', array('type' => 'hidden', 'name' => 'tab', 'value' => $currenttab));
+// } else {
+//     // Trigger downloaded event.
+//     $event = \report_allbackups\event\report_downloaded::create();
+//     $event->trigger();
+// }
+// if ($currenttab == 'autobackup') {
+//     // Get list of files from backup.
+//     $table->adddata($ufiltering);
+// } else {
+//     list($extrasql, $params) = $ufiltering->get_sql_filter();
+//     $fields = 'f.id, f.contextid, f.component, f.filearea, f.filename, f.userid, f.filesize, f.timecreated, f.filepath, f.itemid';
+//     $fields .= \core_user\fields::for_name()->get_sql('u')->selects;
 
-if (!$table->is_downloading()) {
+//     $from = '{files} f JOIN {user} u on u.id = f.userid';
+//     if (strpos($extrasql, 'c.category') !== false) {
+//         // Category filter included, Join with course table.
+//         $from .= ' JOIN {context} cx ON cx.id = f.contextid AND cx.contextlevel = '.CONTEXT_COURSE .
+//                  ' JOIN {course} c ON c.id = cx.instanceid';
+//     }
+//     $where = "f.filename like '%.mbz' and f.component <> 'tool_recyclebin' and f.filearea <> 'draft'";
+//     if (!empty($extrasql)) {
+//         $where .= " and ".$extrasql;
+//     }
 
-    echo html_writer::tag('input', "", array('name' => 'deleteselectedfiles', 'type' => 'submit',
-        'id' => 'deleteallselected', 'class' => 'btn btn-secondary',
-        'value' => get_string('deleteselectedfiles', 'report_allbackups')));
-    echo html_writer::tag('input', "", array('name' => 'downloadallselectedfiles', 'style' => 'margin: 10px', 'type' => 'submit',
-        'id' => 'downloadallselected', 'class' => 'btn btn-secondary',
-        'value' => get_string('downloadallselectedfiles', 'report_allbackups')));
+//     $table->set_sql($fields, $from, $where, $params);
+//     $table->out(40, true);
+// }
 
-    echo html_writer::end_div();
-    echo html_writer::end_tag('form');
-    $event = \report_allbackups\event\report_viewed::create();
-    $event->trigger();
+// if (!$table->is_downloading()) {
+
+//     echo html_writer::tag('input', "", array('name' => 'deleteselectedfiles', 'type' => 'submit',
+//         'id' => 'deleteallselected', 'class' => 'btn btn-secondary',
+//         'value' => get_string('deleteselectedfiles', 'report_allbackups')));
+//     echo html_writer::tag('input', "", array('name' => 'downloadallselectedfiles', 'style' => 'margin: 10px', 'type' => 'submit',
+//         'id' => 'downloadallselected', 'class' => 'btn btn-secondary',
+//         'value' => get_string('downloadallselectedfiles', 'report_allbackups')));
+
+//     echo html_writer::end_div();
+//     echo html_writer::end_tag('form');
+//     $event = \report_allbackups\event\report_viewed::create();
+//     $event->trigger();
     echo $OUTPUT->footer();
-}
+// }
