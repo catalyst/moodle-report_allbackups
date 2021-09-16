@@ -25,7 +25,7 @@ use ZipStream\Option\Archive;
 use ZipStream\ZipStream;
 
 use core_reportbuilder\system_report_factory;
-use local_reportbuilderdemo\course_system_report;
+use report_allbackups\course_system_report;
 
 require_once('../../config.php');
 require_login();
@@ -207,22 +207,45 @@ if (!empty($downloadselected) && confirm_sesskey()) {
 // } else {
 //     $filters = array('filename' => 0, 'realname' => 0, 'coursecategory' => 0, 'filearea' => 0, 'timecreated' => 0);
 // }
-// if ($currenttab == 'autobackup') {
-//     $table = new \report_allbackups\output\autobackups_table('autobackups');
-// } else {
-//     $table = new \report_allbackups\output\allbackups_table('allbackups');
-//     $table->define_baseurl($PAGE->url);
-// }
+echo $OUTPUT->header();
+
+if ($currenttab == 'autobackup') {
+    $table = new \report_allbackups\output\autobackups_table('autobackups');
+} else {
+    // $table = new \report_allbackups\output\allbackups_table('allbackups');
+    // $table->define_baseurl($PAGE->url);
+
+
+
+    echo '<form action="index.php" method="post" id="allbackupsform">';
+    echo html_writer::start_div();
+    // Create report instance.
+    $report = system_report_factory::create(course_system_report::class, context_system::instance());
+    echo $report->output();
+
+    echo html_writer::tag('input', '', array('type' => 'hidden', 'name' => 'sesskey', 'value' => sesskey()));
+    echo html_writer::tag('input', '', array('type' => 'hidden', 'name' => 'returnto', 'value' => s($PAGE->url->out(false))));
+    echo html_writer::tag('input', '', array('type' => 'hidden', 'name' => 'tab', 'value' => $currenttab));
+
+    echo html_writer::tag('input', "", array('name' => 'deleteselectedfiles', 'type' => 'submit',
+    'id' => 'deleteallselected', 'class' => 'btn btn-secondary',
+    'value' => get_string('deleteselectedfiles', 'report_allbackups')));
+    echo html_writer::tag('input', "", array('name' => 'downloadallselectedfiles', 'style' => 'margin: 10px', 'type' => 'submit',
+    'id' => 'downloadallselected', 'class' => 'btn btn-secondary',
+    'value' => get_string('downloadallselectedfiles', 'report_allbackups')));
+
+    // echo html_writer::end_div();
+    echo html_writer::end_tag('form');
+    $event = \report_allbackups\event\report_viewed::create();
+    $event->trigger();
+
+}
 
 // $ufiltering = new \report_allbackups\output\filtering($filters, $PAGE->url);
 // if (!$table->is_downloading()) {
 //     // Only print headers if not asked to download data
 //     // Print the page header.
 //     $PAGE->set_title(get_string('pluginname', 'report_allbackups'));
-    echo $OUTPUT->header();
-    // Create report instance.
-    $report = system_report_factory::create(course_system_report::class, context_system::instance());
-    echo $report->output();
 
 
 //     if (!empty(get_config('backup', 'backup_auto_destination'))) {
@@ -244,11 +267,11 @@ if (!empty($downloadselected) && confirm_sesskey()) {
 //     $ufiltering->display_add();
 //     $ufiltering->display_active();
 
-//     echo '<form action="index.php" method="post" id="allbackupsform">';
-//     echo html_writer::start_div();
-//     echo html_writer::tag('input', '', array('type' => 'hidden', 'name' => 'sesskey', 'value' => sesskey()));
-//     echo html_writer::tag('input', '', array('type' => 'hidden', 'name' => 'returnto', 'value' => s($PAGE->url->out(false))));
-//     echo html_writer::tag('input', '', array('type' => 'hidden', 'name' => 'tab', 'value' => $currenttab));
+    echo '<form action="index.php" method="post" id="allbackupsform">';
+    echo html_writer::start_div();
+    echo html_writer::tag('input', '', array('type' => 'hidden', 'name' => 'sesskey', 'value' => sesskey()));
+    echo html_writer::tag('input', '', array('type' => 'hidden', 'name' => 'returnto', 'value' => s($PAGE->url->out(false))));
+    echo html_writer::tag('input', '', array('type' => 'hidden', 'name' => 'tab', 'value' => $currenttab));
 // } else {
 //     // Trigger downloaded event.
 //     $event = \report_allbackups\event\report_downloaded::create();
