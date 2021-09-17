@@ -26,7 +26,6 @@ use lang_string;
 use html_writer;
 
 require_once($CFG->libdir . '/adminlib.php');
-require_once('../../config.php');
 
 
 /**
@@ -67,7 +66,7 @@ class course_system_report extends system_report {
             ->add_field("$coursetablealias.id")
             ->add_callback(static function () {
 
-                return html_writer::empty_tag('input', array('type' => 'checkbox', 'name' => 'fieldname'));
+                return html_writer::empty_tag('input', array('type' => 'checkbox', 'name' => 'checkbox', 'value' => 0));
             });
 
         $this->add_column($column);

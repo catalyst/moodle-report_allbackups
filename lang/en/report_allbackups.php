@@ -49,4 +49,5 @@ $string['pluginname'] = 'All backups';
 $string['privacy:metadata'] = 'The all backups report plugin does not store any personal data';
 $string['standardbackups'] = 'Standard backups';
 $string['selectbackup'] = 'Select backups';
+$string['allbackups'] = 'All Backups';
 

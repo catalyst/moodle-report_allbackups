@@ -32,7 +32,7 @@ require_login();
 
 $PAGE->set_url(new moodle_url('/report/allbackups/index.php'));
 $PAGE->set_context(context_system::instance());
-$PAGE->set_title(get_string('course', 'local_reportbuilderdemo'));
+$PAGE->set_title(get_string('allbackups', 'report_allbackups'));
 
 require_once($CFG->libdir . '/adminlib.php');
 
@@ -50,86 +50,86 @@ if (empty($backupdest) && $currenttab == 'autobackup') {
     print_error(get_string("autobackupnotset", "report_allbackups"));
 }
 
-if (has_capability('report/allbackups:delete', context_system::instance())) {
+// if (has_capability('report/allbackups:delete', context_system::instance())) {
 
-    if (!empty($deleteselected) || !empty($delete)) { // Delete action.
+//     if (!empty($deleteselected) || !empty($delete)) { // Delete action.
 
-        if (empty($fileids)) {
-            $fileids = array();
-            // First time form submit - get list of ids from checkboxes or from single delete action.
-            if (!empty($delete)) {
-                // This is a single delete action.
-                $fileids[] = $delete;
-            } else {
-                // Get list of ids from checkboxes.
-                $post = data_submitted();
-                if ($currenttab == "autobackup") {
-                    foreach ($post as $k => $v) {
-                        if (preg_match('/^item(.*)/', $k, $m)) {
-                            $fileids[] = $v; // Use value (filename) in array.
-                        }
-                    }
-                } else {
-                    foreach ($post as $k => $v) {
-                        if (preg_match('/^item(\d+)$/', $k, $m)) {
-                            $fileids[] = $m[1];
-                        }
-                    }
-                }
-            }
-            // Display confirmation box - are you really sure you want to delete this file?
-            echo $OUTPUT->header();
-            $params = array('deleteselectedfiles' => 1, 'confirm' => 1, 'fileids' => implode(',', $fileids), 'tab' => $currenttab);
-            $deleteurl = new moodle_url($PAGE->url, $params);
-            $numfiles = count($fileids);
-            echo $OUTPUT->confirm(get_string('areyousurebulk', 'report_allbackups', $numfiles),
-                $deleteurl, $CFG->wwwroot . '/report/allbackups/index.php');
+//         if (empty($fileids)) {
+//             $fileids = array();
+//             // First time form submit - get list of ids from checkboxes or from single delete action.
+//             if (!empty($delete)) {
+//                 // This is a single delete action.
+//                 $fileids[] = $delete;
+//             } else {
+//                 // Get list of ids from checkboxes.
+//                 $post = data_submitted();
+//                 if ($currenttab == "autobackup") {
+//                     foreach ($post as $k => $v) {
+//                         if (preg_match('/^item(.*)/', $k, $m)) {
+//                             $fileids[] = $v; // Use value (filename) in array.
+//                         }
+//                     }
+//                 } else {
+//                     foreach ($post as $k => $v) {
+//                         if (preg_match('/^item(\d+)$/', $k, $m)) {
+//                             $fileids[] = $m[1];
+//                         }
+//                     }
+//                 }
+//             }
+//             // Display confirmation box - are you really sure you want to delete this file?
+//             echo $OUTPUT->header();
+//             $params = array('deleteselectedfiles' => 1, 'confirm' => 1, 'fileids' => implode(',', $fileids), 'tab' => $currenttab);
+//             $deleteurl = new moodle_url($PAGE->url, $params);
+//             $numfiles = count($fileids);
+//             echo $OUTPUT->confirm(get_string('areyousurebulk', 'report_allbackups', $numfiles),
+//                 $deleteurl, $CFG->wwwroot . '/report/allbackups/index.php');
 
-            echo $OUTPUT->footer();
-            exit;
-        } else if (optional_param('confirm', false, PARAM_BOOL) && confirm_sesskey()) {
-            $count = 0;
-            $fileids = explode(',', $fileids);
-            foreach ($fileids as $id) {
-                if ($currenttab == 'autobackup') {
-                    // Check nothing weird passed in filename - protect against directory traversal etc.
-                    // Check to make sure this is an mbz file.
-                    if ($id == clean_param($id, PARAM_FILE) &&
-                        pathinfo($id, PATHINFO_EXTENSION) == 'mbz' &&
-                        is_readable($backupdest .'/'. $id)) {
-                        unlink($backupdest .'/'. $id);
-                        $event = \report_allbackups\event\autobackup_deleted::create(array(
-                            'context' => context_system::instance(),
-                            'objectid' => null,
-                            'other' => array('filename' => $id)));
-                        $event->trigger();
-                        $count++;
-                    } else {
-                        \core\notification::add(get_string('couldnotdeletefile', 'report_allbackups', $id));
-                    }
-                } else {
-                    $fs = new file_storage();
-                    $file = $fs->get_file_by_id((int)$id);
-                    $fileext = pathinfo($file->get_filename(), PATHINFO_EXTENSION);
-                    // Make sure the file exists, and it is a backup file we are deleting.
-                    if (!empty($file) && $fileext == 'mbz') {
-                        $file->delete();
-                        $event = \report_allbackups\event\backup_deleted::create(array(
-                            'context' => context::instance_by_id($file->get_contextid()),
-                            'objectid' => $file->get_id(),
-                            'other' => array('filename' => $file->get_filename())));
-                        $event->trigger();
-                        $count++;
-                    } else {
-                        \core\notification::add(get_string('couldnotdeletefile', 'report_allbackups', $id));
-                    }
+//             echo $OUTPUT->footer();
+//             exit;
+//         } else if (optional_param('confirm', false, PARAM_BOOL) && confirm_sesskey()) {
+//             $count = 0;
+//             $fileids = explode(',', $fileids);
+//             foreach ($fileids as $id) {
+//                 if ($currenttab == 'autobackup') {
+//                     // Check nothing weird passed in filename - protect against directory traversal etc.
+//                     // Check to make sure this is an mbz file.
+//                     if ($id == clean_param($id, PARAM_FILE) &&
+//                         pathinfo($id, PATHINFO_EXTENSION) == 'mbz' &&
+//                         is_readable($backupdest .'/'. $id)) {
+//                         unlink($backupdest .'/'. $id);
+//                         $event = \report_allbackups\event\autobackup_deleted::create(array(
+//                             'context' => context_system::instance(),
+//                             'objectid' => null,
+//                             'other' => array('filename' => $id)));
+//                         $event->trigger();
+//                         $count++;
+//                     } else {
+//                         \core\notification::add(get_string('couldnotdeletefile', 'report_allbackups', $id));
+//                     }
+//                 } else {
+//                     $fs = new file_storage();
+//                     $file = $fs->get_file_by_id((int)$id);
+//                     $fileext = pathinfo($file->get_filename(), PATHINFO_EXTENSION);
+//                     // Make sure the file exists, and it is a backup file we are deleting.
+//                     if (!empty($file) && $fileext == 'mbz') {
+//                         $file->delete();
+//                         $event = \report_allbackups\event\backup_deleted::create(array(
+//                             'context' => context::instance_by_id($file->get_contextid()),
+//                             'objectid' => $file->get_id(),
+//                             'other' => array('filename' => $file->get_filename())));
+//                         $event->trigger();
+//                         $count++;
+//                     } else {
+//                         \core\notification::add(get_string('couldnotdeletefile', 'report_allbackups', $id));
+//                     }
 
-                }
-            }
-            \core\notification::add(get_string('filesdeleted', 'report_allbackups', $count), \core\notification::SUCCESS);
-        }
-    }
-}
+//                 }
+//             }
+//             \core\notification::add(get_string('filesdeleted', 'report_allbackups', $count), \core\notification::SUCCESS);
+//         }
+//     }
+// }
 
 // Triggers when "Download all select files" is clicked.
 if (!empty($downloadselected) && confirm_sesskey()) {
@@ -171,10 +171,14 @@ if (!empty($downloadselected) && confirm_sesskey()) {
                 }
             }
         } else {
+            // var_dump($post);die;
+
             // Get list of ids from the checked backups.
             foreach ($post as $k => $v) {
-                if (preg_match('/^item(\d+)$/', $k, $m)) {
-                    $fileids[] = $m[1];
+                if (isset($post->checkbox)) {
+                    if ($k == 'reportid') {
+                        $fileids[] = $v;
+                    }
                 }
             }
 
@@ -267,11 +271,11 @@ if ($currenttab == 'autobackup') {
 //     $ufiltering->display_add();
 //     $ufiltering->display_active();
 
-    echo '<form action="index.php" method="post" id="allbackupsform">';
-    echo html_writer::start_div();
-    echo html_writer::tag('input', '', array('type' => 'hidden', 'name' => 'sesskey', 'value' => sesskey()));
-    echo html_writer::tag('input', '', array('type' => 'hidden', 'name' => 'returnto', 'value' => s($PAGE->url->out(false))));
-    echo html_writer::tag('input', '', array('type' => 'hidden', 'name' => 'tab', 'value' => $currenttab));
+    // echo '<form action="index.php" method="post" id="allbackupsform">';
+    // echo html_writer::start_div();
+    // echo html_writer::tag('input', '', array('type' => 'hidden', 'name' => 'sesskey', 'value' => sesskey()));
+    // echo html_writer::tag('input', '', array('type' => 'hidden', 'name' => 'returnto', 'value' => s($PAGE->url->out(false))));
+    // echo html_writer::tag('input', '', array('type' => 'hidden', 'name' => 'tab', 'value' => $currenttab));
 // } else {
 //     // Trigger downloaded event.
 //     $event = \report_allbackups\event\report_downloaded::create();
