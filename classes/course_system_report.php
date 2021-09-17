@@ -62,8 +62,13 @@ class course_system_report extends system_report {
             $entity->get_entity_name()
         ))
             ->add_joins($this->get_joins())
-            ->add_callback([$this, 'addcheckbox'], "$coursetablealias.id")
-            ->add_field("$coursetablealias.id");
+            ->set_type(column::TYPE_BOOLEAN)
+            ->set_is_sortable(true)
+            ->add_field("$coursetablealias.id")
+            ->add_callback(static function () {
+
+                return html_writer::empty_tag('input', array('type' => 'checkbox', 'name' => 'fieldname'));
+            });
 
         $this->add_column($column);
         
