@@ -171,8 +171,6 @@ if (!empty($downloadselected) && confirm_sesskey()) {
                 }
             }
         } else {
-            // var_dump($post);die;
-
             // Get list of ids from the checked backups.
             foreach ($post as $k => $v) {
                 if (isset($post->checkbox)) {

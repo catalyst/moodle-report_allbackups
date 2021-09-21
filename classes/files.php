@@ -18,7 +18,6 @@ declare(strict_types=1);
 
 namespace report_allbackups;
 
-use context_course;
 use context_helper;
 use core_course_category;
 use core_reportbuilder\local\filters\boolean_select;
