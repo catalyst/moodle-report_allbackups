@@ -79,8 +79,6 @@ class course_system_report extends system_report {
             $filesize => 0]
         );
 
-
-
         //
         // Create columns.
         //
@@ -144,14 +142,18 @@ class course_system_report extends system_report {
         ))
             ->add_joins($this->get_joins())
             ->set_is_sortable(true)
-            ->add_field("$filestablealias.filesize");
+            ->add_field("$filestablealias.filesize")
+            ->add_callback(static function ($value): string {
+                $kilobytes = round(((int)$value / 1000), 2);
+                return $kilobytes . 'KB';
+            });
 
         $this->add_column($column);
 
         // Username column.
         $column = (new column(
             'username',
-            new lang_string('fullname'),
+            new lang_string('username'),
             $entityfiles->get_entity_name()
         ))
             ->add_join("LEFT JOIN {user} {$entituseralias} 
@@ -169,7 +171,10 @@ class course_system_report extends system_report {
         ))
             ->add_joins($this->get_joins())
             ->set_is_sortable(true)
-            ->add_field("{$filestablealias}.timecreated");
+            ->add_field("{$filestablealias}.timecreated")
+            ->add_callback(static function ($value): string {
+                return userdate($value);
+            });
 
         $this->add_column($column);
 
