@@ -27,6 +27,7 @@ use ZipStream\Option\Archive;
 use ZipStream\ZipStream;
 use core_reportbuilder\system_report_factory;
 use report_allbackups\course_system_report;
+use core_reportbuilder\table\system_report_table;
 
 require_once('../../config.php');
 require_login();
@@ -148,7 +149,7 @@ if (!empty($downloadselected) && confirm_sesskey()) {
         // Get list of ids from the checked checkboxes.
         $post = data_submitted();
 
-        var_dump($post);die;
+        // var_dump($post);die;
 
         if ($currenttab == 'autobackup') {
             // Get list of names from the checked backups.
@@ -219,9 +220,15 @@ if ($currenttab == 'autobackup') {
 if ($currenttab == 'autobackup') {
     $table = new \report_allbackups\output\autobackups_table('autobackups');
 } else {
-    $table = new \report_allbackups\output\allbackups_table('allbackups');
-    $table->define_baseurl($PAGE->url);
+    // $table = new \report_allbackups\output\allbackups_table('allbackups');
     $report = system_report_factory::create(course_system_report::class, context_system::instance());
+
+    $table = system_report_table::create(3, []);
+    $table->define_baseurl($PAGE->url);
+
+    // $table->define_baseurl($PAGE->url);
+
+
 }
 
 $ufiltering = new \report_allbackups\output\filtering($filters, $PAGE->url);
@@ -245,7 +252,7 @@ if (!$table->is_downloading()) {
         echo $OUTPUT->box(get_string('autobackup_description', 'report_allbackups'));
     } else {
         echo $OUTPUT->box(get_string('plugindescription', 'report_allbackups'));
-        echo $report->output();
+        // echo $report->output();
     }
     
     // $ufiltering->display_add();
@@ -253,6 +260,7 @@ if (!$table->is_downloading()) {
 
     echo '<form action="index.php" method="post" id="allbackupsform">';
     echo html_writer::start_div();
+    echo $report->output();
 
     echo html_writer::tag('input', '', array('type' => 'hidden', 'name' => 'sesskey', 'value' => sesskey()));
     echo html_writer::tag('input', '', array('type' => 'hidden', 'name' => 'returnto', 'value' => s($PAGE->url->out(false))));
