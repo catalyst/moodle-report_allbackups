@@ -79,6 +79,12 @@ class course_system_report extends system_report {
             $filesize => 0]
         );
 
+
+
+        //
+        // Create columns.
+        //
+
         // Checkbox column.
         $column = (new column(
             'id',
@@ -89,14 +95,10 @@ class course_system_report extends system_report {
             ->set_is_sortable(true)
             ->add_field("$filestablealias.id")
             ->add_callback(static function () {
-                return html_writer::empty_tag('input', array('type' => 'checkbox', 'name' => 'checkbox', 'value' => 0));
+                return html_writer::empty_tag('input', array('type' => 'checkbox', 'name' => 'checkbox', 'value' => 1));
             });
 
         $this->add_column($column);
-
-        //
-        // Create columns.
-        //
 
         // Component column.
         $column = (new column(
