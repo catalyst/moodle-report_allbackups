@@ -208,6 +208,7 @@ if ($currenttab == 'autobackup') {
 }
 if ($currenttab == 'autobackup') {
     $table = system_report_table::create(3, []);
+    $report = system_report_factory::create(course_system_report::class, context_system::instance());
 } else {
     $report = system_report_factory::create(course_system_report::class, context_system::instance());
     $table = system_report_table::create(3, []);
@@ -236,8 +237,11 @@ if (!$table->is_downloading()) {
     } else {
         echo $OUTPUT->box(get_string('plugindescription', 'report_allbackups'));
     }
-    // $ufiltering->display_add();
-    // $ufiltering->display_active();
+
+    //////////////////////////////////////////////////////////////
+    // This is the report builder form, if this is put within the allbackupsform the filter bugs 
+    // Unsure about how this should work
+    echo $report->output();
 
     echo '<form action="index.php" method="post" id="allbackupsform">';
     echo html_writer::start_div();
@@ -252,26 +256,9 @@ if (!$table->is_downloading()) {
 if ($currenttab == 'autobackup') {
     // Get list of files from backup.
     // $table->adddata($ufiltering);
+    // echo $report->output();
 } else {
-    list($extrasql, $params) = $ufiltering->get_sql_filter();
-    $fields = 'f.id, f.contextid, f.component, f.filearea, f.filename, f.userid, f.filesize, f.timecreated, f.filepath, f.itemid';
-    $fields .= \core_user\fields::for_name()->get_sql('u')->selects;
-
-    $from = '{files} f JOIN {user} u on u.id = f.userid';
-    if (strpos($extrasql, 'c.category') !== false) {
-        // Category filter included, Join with course table.
-        $from .= ' JOIN {context} cx ON cx.id = f.contextid AND cx.contextlevel = '.CONTEXT_COURSE .
-                 ' JOIN {course} c ON c.id = cx.instanceid';
-    }
-    $where = "f.filename like '%.mbz' and f.component <> 'tool_recyclebin' and f.filearea <> 'draft'";
-    if (!empty($extrasql)) {
-        $where .= " and ".$extrasql;
-    }
-
-    echo $report->output();
-
-    // $table->set_sql($fields, $from, $where, $params);
-    // $table->out(40, true);
+    // echo $report->output();
 }
 
 if (!$table->is_downloading()) {
