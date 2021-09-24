@@ -50,7 +50,8 @@ if (empty($backupdest) && $currenttab == 'autobackup') {
     print_error(get_string("autobackupnotset", "report_allbackups"));
 }
 
-if (has_capability('report/allbackups:delete', context_system::instance())) {
+$context = context_system::instance();
+if (has_capability('report/allbackups:delete', $context)) {
 
     if (!empty($deleteselected) || !empty($delete)) { // Delete action.
 
@@ -63,9 +64,6 @@ if (has_capability('report/allbackups:delete', context_system::instance())) {
             } else {
                 // Get list of ids from checkboxes.
                 $post = data_submitted();
-
-                var_dump($post);die;
-
                 if ($currenttab == "autobackup") {
                     foreach ($post as $k => $v) {
                         if (preg_match('/^item(.*)/', $k, $m)) {
@@ -87,6 +85,7 @@ if (has_capability('report/allbackups:delete', context_system::instance())) {
             $numfiles = count($fileids);
             echo $OUTPUT->confirm(get_string('areyousurebulk', 'report_allbackups', $numfiles),
                 $deleteurl, $CFG->wwwroot . '/report/allbackups/index.php');
+
             echo $OUTPUT->footer();
             exit;
         } else if (optional_param('confirm', false, PARAM_BOOL) && confirm_sesskey()) {
@@ -149,8 +148,6 @@ if (!empty($downloadselected) && confirm_sesskey()) {
         // Get list of ids from the checked checkboxes.
         $post = data_submitted();
 
-        // var_dump($post);die;
-
         if ($currenttab == 'autobackup') {
             // Get list of names from the checked backups.
             foreach ($post as $k => $v) {
@@ -204,31 +201,17 @@ if (!empty($downloadselected) && confirm_sesskey()) {
     }
 }
 
-
-
-
-
-///////////////////////////////////////////////////////////////////////////////
-// This is where things get weird 
-///////////////////////////////////////////////////////////////////////////////
-
 if ($currenttab == 'autobackup') {
     $filters = array('filename' => 0, 'timecreated' => 0);
 } else {
     $filters = array('filename' => 0, 'realname' => 0, 'coursecategory' => 0, 'filearea' => 0, 'timecreated' => 0);
 }
 if ($currenttab == 'autobackup') {
-    $table = new \report_allbackups\output\autobackups_table('autobackups');
+    $table = system_report_table::create(3, []);
 } else {
-    // $table = new \report_allbackups\output\allbackups_table('allbackups');
     $report = system_report_factory::create(course_system_report::class, context_system::instance());
-
     $table = system_report_table::create(3, []);
     $table->define_baseurl($PAGE->url);
-
-    // $table->define_baseurl($PAGE->url);
-
-
 }
 
 $ufiltering = new \report_allbackups\output\filtering($filters, $PAGE->url);
@@ -252,16 +235,12 @@ if (!$table->is_downloading()) {
         echo $OUTPUT->box(get_string('autobackup_description', 'report_allbackups'));
     } else {
         echo $OUTPUT->box(get_string('plugindescription', 'report_allbackups'));
-        // echo $report->output();
     }
-    
     // $ufiltering->display_add();
     // $ufiltering->display_active();
 
     echo '<form action="index.php" method="post" id="allbackupsform">';
     echo html_writer::start_div();
-    echo $report->output();
-
     echo html_writer::tag('input', '', array('type' => 'hidden', 'name' => 'sesskey', 'value' => sesskey()));
     echo html_writer::tag('input', '', array('type' => 'hidden', 'name' => 'returnto', 'value' => s($PAGE->url->out(false))));
     echo html_writer::tag('input', '', array('type' => 'hidden', 'name' => 'tab', 'value' => $currenttab));
@@ -272,7 +251,7 @@ if (!$table->is_downloading()) {
 }
 if ($currenttab == 'autobackup') {
     // Get list of files from backup.
-    $table->adddata($ufiltering);
+    // $table->adddata($ufiltering);
 } else {
     list($extrasql, $params) = $ufiltering->get_sql_filter();
     $fields = 'f.id, f.contextid, f.component, f.filearea, f.filename, f.userid, f.filesize, f.timecreated, f.filepath, f.itemid';
@@ -289,11 +268,9 @@ if ($currenttab == 'autobackup') {
         $where .= " and ".$extrasql;
     }
 
-    $table->set_sql($fields, $from, $where, $params);
+    echo $report->output();
 
-    // $report = system_report_factory::create(course_system_report::class, context_system::instance());
-    // echo $report->output();
-
+    // $table->set_sql($fields, $from, $where, $params);
     // $table->out(40, true);
 }
 
@@ -312,17 +289,3 @@ if (!$table->is_downloading()) {
     $event->trigger();
     echo $OUTPUT->footer();
 }
-
-///////////////////////////////////////////////////////////////////////////////
-
-
-// $PAGE->set_title(get_string('course', 'local_reportbuilderdemo'));
-
-// echo $OUTPUT->header();
-// echo $OUTPUT->heading(get_string('course', 'local_reportbuilderdemo'));
-
-// Create report instance.
-// $report = system_report_factory::create(course_system_report::class, context_system::instance());
-// echo $report->output();
-
-// echo $OUTPUT->footer();
