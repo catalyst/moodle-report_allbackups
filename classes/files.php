@@ -18,8 +18,10 @@ declare(strict_types=1);
 
 namespace report_allbackups;
 
+use context_course;
 use context_helper;
 use core_course_category;
+use core_reportbuilder\local\entities\user;
 use core_reportbuilder\local\filters\boolean_select;
 use core_reportbuilder\local\filters\course_selector;
 use core_reportbuilder\local\filters\date;
@@ -67,7 +69,7 @@ class files extends base {
      *
      * @return string
      */
-    protected function get_default_entity_name(): string {
+    public function get_default_entity_name(): string {
         return 'files';
     }
 
@@ -90,16 +92,8 @@ class files extends base {
      * @return custom_fields
      */
     protected function get_custom_fields(): custom_fields {
-        // var_dump($this->get_table_alias('course'));die;
 
-        $customfields = new custom_fields(
-            $this->get_table_alias('files') . '.id',
-            $this->get_entity_name(),
-            'core_files',
-            'files',
-        );
-        $customfields->add_joins($this->get_joins());
-        return $customfields;
+
     }
 
     /**
@@ -109,43 +103,15 @@ class files extends base {
      */
     public function initialise(): base {
 
-        // $column = (new column(
-        //     'id',
-        //     new lang_string('selectbackup', 'report_allbackups'),
-        //     $this->get_entity_name()
-        // ))
-        //     ->add_joins($this->get_joins())
-        //     ->set_is_sortable(true)
-        //     ->add_field($this->get_table_alias('files') . '.id')
-        //     ->add_callback(static function () {
-        //         return html_writer::empty_tag('input', array('type' => 'checkbox', 'name' => 'checkbox', 'value' => 0));
-        //     });
+        $columns = $this->get_all_columns();
+        foreach ($columns as $column) {
+            $this->add_column($column);
+        }
 
-        // $this->add_column($column);
-
-        // $column = (new column(
-        //     'component',
-        //     new lang_string('component', 'report_allbackups'),
-        //     $this->get_entity_name()
-        // ))
-        //     ->add_joins($this->get_joins())
-        //     ->set_is_sortable(true)
-        //     ->add_field($this->get_table_alias('files') . '.component');
-
-        // $this->add_column($column);
-
-
-        // $customfields = $this->get_custom_fields();
-
-        // $columns = array_merge($this->get_all_columns(), $customfields->get_columns());
-        // foreach ($columns as $column) {
-        //     $this->add_column($column);
-        // }
-
-        // $filters = array_merge($this->get_all_filters(), $customfields->get_filters());
-        // foreach ($filters as $filter) {
-        //     $this->add_filter($filter);
-        // }
+        $filters = $this->get_all_filters();
+        foreach ($filters as $filter) {
+            $this->add_filter($filter);
+        }
 
         return $this;
     }
@@ -239,61 +205,149 @@ class files extends base {
      * @return column[]
      */
     protected function get_all_columns(): array {
+
         $columns = [];
-        $coursefields = $this->get_course_fields();
-        $tablealias = $this->get_table_alias('course');
-        $contexttablealias = $this->get_table_alias('context');
+        global $USER;
+        $entityuser = new user();
 
-        // Columns course full name with link, course short name with link and course id with link.
-        $fields = [
-            'coursefullnamewithlink' => 'fullname',
-            'courseshortnamewithlink' => 'shortname',
-            'courseidnumberewithlink' => 'idnumber',
-        ];
-        foreach ($fields as $key => $field) {
-            $columns[] = (new column(
-                $key,
-                new lang_string($key, 'core_reportbuilder'),
-                $this->get_entity_name()
-            ))
-                ->add_joins($this->get_joins())
-                ->set_type(column::TYPE_TEXT)
-                ->add_fields("{$tablealias}.{$field} as $key, {$tablealias}.id")
-                ->set_is_sortable(true)
-                ->add_callback(static function(?string $value, stdClass $row): string {
-                    if ($value === null) {
-                        return '';
-                    }
+        $entituseralias = $entityuser->get_table_alias('user');
+        $filestablealias = $this->get_table_alias('files');
 
-                    return html_writer::link(course_get_url($row->id), $value);
-                });
-        }
+        // Checkbox column.
+        $columns[] = (new column(
+            'id',
+            new lang_string('selectbackup', 'report_allbackups'),
+            $this->get_entity_name()
+        ))
+            ->add_joins($this->get_joins())
+            ->set_is_sortable(true)
+            ->add_field("$filestablealias.id")
+            ->add_callback(static function () {
+                return html_writer::empty_tag('input', array('type' => 'checkbox', 'name' => 'checkbox', 'value' => 1));
+            });
 
-        foreach ($coursefields as $coursefield => $coursefieldlang) {
-            $column = (new column(
-                $coursefield,
-                $coursefieldlang,
-                $this->get_entity_name()
-            ))
-                ->add_joins($this->get_joins())
-                ->set_type($this->get_course_field_type($coursefield))
-                ->add_field("$tablealias.$coursefield")
-                ->add_callback([$this, 'format'], $coursefield)
-                ->set_is_sortable($this->is_sortable($coursefield));
+        // Component column.
+        $columns[] = (new column(
+            'component',
+            new lang_string('component', 'report_allbackups'),
+            $this->get_entity_name()
+        ))
+            ->add_joins($this->get_joins())
+            ->set_is_sortable(true)
+            ->add_field("component");
 
-            // Join on the context table so that we can use it for formatting these columns later.
-            if ($coursefield === 'summary' || $coursefield === 'shortname' || $coursefield === 'fullname') {
-                $join = "LEFT JOIN {context} {$contexttablealias}
-                           ON {$contexttablealias}.contextlevel = " . CONTEXT_COURSE . "
-                          AND {$contexttablealias}.instanceid = {$tablealias}.id";
+        // File area column.
+        $columns[] = (new column(
+            'filearea',
+            new lang_string('filearea', 'report_allbackups'),
+            $this->get_entity_name()
+        ))
+            ->add_joins($this->get_joins())
+            ->set_is_sortable(true)
+            ->add_field("$filestablealias.filearea");
 
-                $column->add_join($join)
-                    ->add_field("{$tablealias}.id", 'courseid')
-                    ->add_fields(context_helper::get_preload_record_columns_sql($contexttablealias));
-            }
+        // File name column.
+        $columns[] = (new column(
+            'filename',
+            new lang_string('name'),
+            $this->get_entity_name()
+        ))
+            ->add_joins($this->get_joins())
+            ->set_is_sortable(true)
+            ->add_field("$filestablealias.filename");
 
-            $columns[] = $column;
-        }
+        // Size column.
+        $columns[] = (new column(
+            'size',
+            new lang_string('size'),
+            $this->get_entity_name()
+        ))
+            ->add_joins($this->get_joins())
+            ->set_is_sortable(true)
+            ->add_field("$filestablealias.filesize")
+            ->add_callback(static function ($value): string {
+                $kilobytes = round(((int)$value / 1000), 2);
+                return $kilobytes . 'KB';
+            });
+
+        // Username column.
+        $columns[] = (new column(
+            'username',
+            new lang_string('username'),
+            $this->get_entity_name()
+        ))
+            ->add_join("LEFT JOIN {user} {$entituseralias} 
+                        ON {$entituseralias}.id = {$filestablealias}.userid")
+            ->set_is_sortable(true)
+            ->add_field("{$entituseralias}.username");
+
+        // Time created column.
+        $columns[] = (new column(
+            'timecreated',
+            new lang_string('date'),
+            $this->get_entity_name()
+        ))
+            ->add_joins($this->get_joins())
+            ->set_is_sortable(true)
+            ->add_field("{$filestablealias}.timecreated")
+            ->add_callback(static function ($value): string {
+                return userdate($value);
+            });
+
+        // // Actions created column.
+        // $columns[] = (new column(
+        //     'actions',
+        //     new lang_string('actions'),
+        //     $this->get_entity_name()
+        // ))
+        // ->add_joins($this->get_joins())
+        // ->set_is_sortable(true)
+        // ->add_field("
+        //                 {$filestablealias}.contextid,
+        //                 {$filestablealias}.component,
+        //                 {$filestablealias}.filearea,
+        //                 {$filestablealias}.filepath,
+        //                 {$filestablealias}.filename,
+        //                 {$filestablealias}.id,
+        //             ")
+        // ->add_callback(static function () {
+
+        //     $context = \context_system::instance();
+        //     $fileurl = moodle_url::make_pluginfile_url(
+        //         $row->contextid,
+        //         $row->component,
+        //         $row->filearea,
+        //         null,
+        //         $row->filepath,
+        //         $row->filename,
+        //         true
+        //     );
+
+        //     $output = \html_writer::link($fileurl, get_string('download'));
+
+        //     if (has_capability('moodle/restore:restorecourse', $context)) {
+        //         $params = array();
+        //         $params['action'] = 'choosebackupfile';
+        //         $params['filename'] = $row->filename;
+        //         $params['filepath'] = $row->filepath;
+        //         $params['component'] = $row->component;
+        //         $params['filearea'] = $row->filearea;
+        //         $params['filecontextid'] = $row->contextid;
+        //         $params['contextid'] = context_system::instance()->id;
+        //         $params['itemid'] = $row->id;
+        //         $restoreurl = new moodle_url('/backup/restorefile.php', $params);
+
+        //         $output .= ' | '. html_writer::link($restoreurl, get_string('restore'));
+        //     }
+
+        //     if (has_capability('report/allbackups:delete', $context)) {
+        //         $params = array('delete' => $row->id, 'filename' => $row->filename);
+        //         $deleteurl = new moodle_url('/report/allbackups/index.php', $params);
+        //         $output .= ' | '. html_writer::link($deleteurl, get_string('delete'));
+        //     }
+
+        //     return $output;
+        // });
 
         return $columns;
     }
@@ -304,55 +358,36 @@ class files extends base {
      * @return array
      */
     protected function get_all_filters(): array {
-        global $DB;
 
-        $filters = [];
-        $tablealias = $this->get_table_alias('course');
+        $filestablealias = $this->get_table_alias('files');
 
-        $fields = $this->get_course_fields();
-        foreach ($fields as $field => $name) {
-            // Filtering isn't supported for LONGTEXT fields on Oracle.
-            if ($this->get_course_field_type($field) === column::TYPE_LONGTEXT &&
-                    $DB->get_dbfamily() === 'oracle') {
-
-                continue;
-            }
-
-            $optionscallback = [static::class, 'get_options_for_' . $field];
-            if (is_callable($optionscallback)) {
-                $filterclass = select::class;
-            } else if ($this->get_course_field_type($field) === column::TYPE_BOOLEAN) {
-                $filterclass = boolean_select::class;
-            } else if ($this->get_course_field_type($field) === column::TYPE_TIMESTAMP) {
-                $filterclass = date::class;
-            } else {
-                $filterclass = text::class;
-            }
-
-            $filter = (new filter(
-                $filterclass,
-                $field,
-                $name,
-                $this->get_entity_name(),
-                "{$tablealias}.$field"
-            ))
-                ->add_joins($this->get_joins());
-
-            // Populate filter options by callback, if available.
-            if (is_callable($optionscallback)) {
-                $filter->set_options_callback($optionscallback);
-            }
-
-            $filters[] = $filter;
-        }
-
-        // We add our own custom course selector filter.
+        // Filter by backup name.
         $filters[] = (new filter(
-            course_selector::class,
-            'courseselector',
-            new lang_string('courses'),
+            text::class,
+            'fileselector',
+            new lang_string('name'),
             $this->get_entity_name(),
-            "{$tablealias}.id"
+            "{$filestablealias}.filename"
+        ))
+            ->add_joins($this->get_joins());
+
+        // Filter by time created.
+        $filters[] = (new filter(
+            date::class,
+            'dateselector',
+            new lang_string('date'),
+            $this->get_entity_name(),
+            "{$filestablealias}.timecreated"
+        ))
+            ->add_joins($this->get_joins());
+
+        // Filter by filearea created.
+        $filters[] = (new filter(
+            text::class,
+            'filearea',
+            new lang_string('filearea', 'report_allbackups'),
+            $this->get_entity_name(),
+            "{$filestablealias}.filearea"
         ))
             ->add_joins($this->get_joins());
 

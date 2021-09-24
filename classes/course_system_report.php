@@ -29,6 +29,8 @@ use core_reportbuilder\local\report\filter;
 use context_helper;
 use lang_string;
 use html_writer;
+use moodle_url;
+use context_system;
 
 require_once($CFG->libdir . '/adminlib.php');
 
@@ -63,11 +65,11 @@ class course_system_report extends system_report {
 
         // Add files entity to the report.
         $this->add_entity($entityfiles);
-
-        // Join the user table and the files table together.
-        $this->add_entity($entityuser->add_join(
-            "LEFT JOIN {user} {$entituseralias} ON {$entituseralias}.id = {$filestablealias}.userid"
+        $this->add_entity($entityfiles->add_join(
+            "LEFT JOIN {user} AS {$entituseralias} ON {$entituseralias}.id = {$filestablealias}.userid"
         ));
+
+        $this->add_base_fields("{$filestablealias}.id");
 
         // Only show backups that belong to the logged in user's backups greater than 0 bits.
         $this->add_base_condition_sql(
@@ -150,6 +152,7 @@ class course_system_report extends system_report {
 
         $this->add_column($column);
 
+
         // Username column.
         $column = (new column(
             'username',
@@ -159,9 +162,15 @@ class course_system_report extends system_report {
             ->add_join("LEFT JOIN {user} {$entituseralias} 
                         ON {$entituseralias}.id = {$filestablealias}.userid")
             ->set_is_sortable(true)
-            ->add_field("{$entituseralias}.username");
+            ->add_fields("{$entituseralias}.id, {$entituseralias}.firstname, {$entituseralias}.lastname,  {$entituseralias}.username")
+            ->add_callback(static function ($value, $row): string {
+                    return html_writer::link(
+                        new moodle_url('/user/profile.php', ['id' => $row->id]),
+                        $row->username
+                    );
+            });
 
-        $this->add_column($column);
+            $this->add_column($column);
 
         // Time created column.
         $column = (new column(
@@ -175,6 +184,61 @@ class course_system_report extends system_report {
             ->add_callback(static function ($value): string {
                 return userdate($value);
             });
+
+        $this->add_column($column);
+
+        // Actions created column.
+        $column = (new column(
+            'actions',
+            new lang_string('actions'),
+            $entityfiles->get_entity_name()
+        ))
+        ->add_joins($this->get_joins())
+        ->set_is_sortable(true)
+        ->add_fields("{$filestablealias}.contextid,
+                      {$filestablealias}.component,
+                      {$filestablealias}.filearea,
+                      {$filestablealias}.filepath,
+                      {$filestablealias}.filename,
+                      {$filestablealias}.id")
+        ->add_callback(static function ($value, $row): string {
+
+            $context = \context_system::instance();
+            $fileurl = moodle_url::make_pluginfile_url(
+                $row->contextid,
+                $row->component,
+                $row->filearea,
+                null,
+                $row->filepath,
+                $row->filename,
+                true
+            );
+
+            $output = \html_writer::link($fileurl, get_string('download'));
+
+            if (has_capability('moodle/restore:restorecourse', $context)) {
+                $params = array();
+                $params['action'] = 'choosebackupfile';
+                $params['filename'] = $row->filename;
+                $params['filepath'] = $row->filepath;
+                $params['component'] = $row->component;
+                $params['filearea'] = $row->filearea;
+                $params['filecontextid'] = $row->contextid;
+                $params['contextid'] = context_system::instance()->id;
+                $params['itemid'] = $row->id;
+                $restoreurl = new moodle_url('/backup/restorefile.php', $params);
+
+                $output .= ' | '. html_writer::link($restoreurl, get_string('restore'));
+            }
+
+            if (has_capability('report/allbackups:delete', $context)) {
+                $params = array('delete' => $row->id, 'filename' => $row->filename);
+                $deleteurl = new moodle_url('/report/allbackups/index.php', $params);
+                $output .= ' | '. html_writer::link($deleteurl, get_string('delete'));
+            }
+
+            return $output;
+        });
 
         $this->add_column($column);
 
