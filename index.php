@@ -42,9 +42,8 @@ $delete = optional_param('delete', '', PARAM_TEXT);
 $filename = optional_param('filename', '', PARAM_TEXT);
 $deleteselected = optional_param('deleteselectedfiles', '', PARAM_TEXT);
 $downloadselected = optional_param('downloadallselectedfiles', '', PARAM_TEXT);
-$fileids = optional_param('fileids', '', PARAM_TEXT);
 $currenttab = optional_param('tab', 'core', PARAM_TEXT);
-$fileids = optional_param_array('id', '', PARAM_INT);
+$fileids =  optional_param_array('id', null, PARAM_INT);
 
 // admin_externalpage_setup('reportallbackups', '', array('tab' => $currenttab), '', array('pagelayout' => 'report'));
 
@@ -136,59 +135,47 @@ if (has_capability('report/allbackups:delete', $context)) {
 }
 
 // Triggers when "Download all select files" is clicked.
-// if (!empty($downloadselected) && confirm_sesskey()) {
-    if (!empty($fileids)) {
+if (!empty($fileids)) {
+    // Raise memory limit - each file is loaded in PHP memory, so this much be larger than the largest backup file.
+    raise_memory_limit(MEMORY_HUGE);
 
-        // $fileids = array();
-        // Raise memory limit - each file is loaded in PHP memory, so this much be larger than the largest backup file.
-        raise_memory_limit(MEMORY_HUGE);
+    // Initialize zip for saving multiple selected files at once.
+    $options = new Archive();
+    $options->setSendHttpHeaders(true);
+    $zip = new ZipStream('all_backups.zip', $options);
 
-        // Initialize zip for saving multiple selected files at once.
-        $options = new Archive();
-        $options->setSendHttpHeaders(true);
-        $zip = new ZipStream('all_backups.zip', $options);
+    // Get list of ids from the checked checkboxes.
+    $post = data_submitted();
 
-        // Get list of ids from the checked checkboxes.
-        $post = data_submitted();
+    if ($currenttab == 'autobackup') {
+        // Get list of names from the checked backups.
+        // foreach ($post as $k => $v) {
+        //     if (preg_match('/^item(.*)/', $k, $m)) {
+        //         $fileids[] = $v; // Use value (filename) in array.
+        //     }
+        // }
+        
 
-        if ($currenttab == 'autobackup') {
-            // Get list of names from the checked backups.
-            // foreach ($post as $k => $v) {
-            //     if (preg_match('/^item(.*)/', $k, $m)) {
-            //         $fileids[] = $v; // Use value (filename) in array.
-            //     }
-            // }
-            
+        // Check nothing weird passed in filename - protect against directory traversal etc.
+        // Check to make sure this is an mbz file.
+        foreach ($fileids as $filename) {
 
-            // Check nothing weird passed in filename - protect against directory traversal etc.
-            // Check to make sure this is an mbz file.
-            foreach ($fileids as $filename) {
+            if ($filename == clean_param($filename, PARAM_FILE) &&
+                pathinfo($filename, PATHINFO_EXTENSION) == 'mbz' &&
+                is_readable($backupdest .'/'. $filename)) {
 
-                if ($filename == clean_param($filename, PARAM_FILE) &&
-                    pathinfo($filename, PATHINFO_EXTENSION) == 'mbz' &&
-                    is_readable($backupdest .'/'. $filename)) {
-
-                        $file = $backupdest.'/'.$filename;
-                        $filecontents = file_get_contents($file, FILE_USE_INCLUDE_PATH);
-                        $zip->addFile($filename, $filecontents);
-                } else {
-                    \core\notification::add(get_string('couldnotdownloadfile', 'report_allbackups'));
-                }
+                    $file = $backupdest.'/'.$filename;
+                    $filecontents = file_get_contents($file, FILE_USE_INCLUDE_PATH);
+                    $zip->addFile($filename, $filecontents);
+            } else {
+                \core\notification::add(get_string('couldnotdownloadfile', 'report_allbackups'));
             }
-        } else {
-            // Get list of ids from the checked backups.
-            // foreach ($post as $k => $v) {
-            //     if (preg_match('/^item(\d+)$/', $k, $m)) {
-            //         $fileids[] = $m[1];
-            //     }
-            // }
-
-            $fileids;
-
+        }
+    } else {
+        if (!empty($fileids)) {
             // Check nothing weird passed in filename - protect against directory traversal etc.
             // Check to make sure this is an mbz file.
             foreach ($fileids as $id) {
-
                 // Translate the file id into file name / contents.
                 $fs = new file_storage();
                 $file = $fs->get_file_by_id((int)$id);
@@ -205,13 +192,12 @@ if (has_capability('report/allbackups:delete', $context)) {
         $zip->finish();
         exit;
     }
-// }
+}
 
 if ($currenttab == 'autobackup') {
     $filters = array('filename' => 0, 'timecreated' => 0);
-} else {
-    $filters = array('filename' => 0, 'realname' => 0, 'coursecategory' => 0, 'filearea' => 0, 'timecreated' => 0);
 }
+
 if ($currenttab == 'autobackup') {
     $table = system_report_table::create(3, []);
     $report = system_report_factory::create(course_system_report::class, context_system::instance());
@@ -221,50 +207,14 @@ if ($currenttab == 'autobackup') {
     $table->define_baseurl($PAGE->url);
 }
 
-$ufiltering = new \report_allbackups\output\filtering($filters, $PAGE->url);
 if (!$table->is_downloading()) {
     // Only print headers if not asked to download data
     // Print the page header.
     $PAGE->set_title(get_string('pluginname', 'report_allbackups'));
     echo $OUTPUT->header();
-    if (!empty(get_config('backup', 'backup_auto_destination'))) {
-        $row = $tabs = array();
-        $row[] = new tabobject('core',
-            $CFG->wwwroot.'/report/allbackups',
-            get_string('standardbackups', 'report_allbackups'));
-        $row[] = new tabobject('autobackup',
-            $CFG->wwwroot.'/report/allbackups/index.php?tab=autobackup',
-            get_string('autobackup', 'report_allbackups'));
-        $tabs[] = $row;
-        print_tabs($tabs, $currenttab);
-    }
-    if ($currenttab == 'autobackup') {
-        echo $OUTPUT->box(get_string('autobackup_description', 'report_allbackups'));
-    } else {
-        echo $OUTPUT->box(get_string('plugindescription', 'report_allbackups'));
-    }
-
-    //////////////////////////////////////////////////////////////
-    // This is the report builder form, if this is put within the allbackupsform the filter bugs 
-    // Unsure about how this should work
     echo $report->output();
 
-    echo '<form action="index.php" method="post" id="allbackupsform">';
-    echo html_writer::start_div();
-    echo html_writer::tag('input', '', array('type' => 'hidden', 'name' => 'sesskey', 'value' => sesskey()));
-    echo html_writer::tag('input', '', array('type' => 'hidden', 'name' => 'returnto', 'value' => s($PAGE->url->out(false))));
-    echo html_writer::tag('input', '', array('type' => 'hidden', 'name' => 'tab', 'value' => $currenttab));
-} else {
-    // Trigger downloaded event.
-    $event = \report_allbackups\event\report_downloaded::create();
-    $event->trigger();
-}
-if ($currenttab == 'autobackup') {
-    // Get list of files from backup.
-    // $table->adddata($ufiltering);
-    // echo $report->output();
-} else {
-    // echo $report->output();
+    // echo '<form action="index.php" method="post" id="allbackupsform">';  
 }
 
 if (!$table->is_downloading()) {
@@ -275,10 +225,6 @@ if (!$table->is_downloading()) {
     echo html_writer::tag('input', "", array('name' => 'downloadallselectedfiles', 'style' => 'margin: 10px',
         'id' => 'downloadallselected', 'class' => 'btn btn-secondary',
         'value' => get_string('downloadallselectedfiles', 'report_allbackups')));
-
-    echo html_writer::end_div();
-    echo html_writer::end_tag('form');
-    $event = \report_allbackups\event\report_viewed::create();
-    $event->trigger();
+ 
     echo $OUTPUT->footer();
 }
