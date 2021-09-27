@@ -32,9 +32,11 @@ use core_reportbuilder\table\system_report_table;
 require_once('../../config.php');
 require_login();
 require_once($CFG->libdir . '/adminlib.php');
+require_once($CFG->libdir. '/filestorage/file_storage.php');
 
 $PAGE->set_url(new moodle_url('/report/allbackups/index.php'));
 $PAGE->set_context(context_system::instance());
+$PAGE->requires->js('/report/allbackups/assets/allbackups.js');
 
 $delete = optional_param('delete', '', PARAM_TEXT);
 $filename = optional_param('filename', '', PARAM_TEXT);
@@ -42,6 +44,7 @@ $deleteselected = optional_param('deleteselectedfiles', '', PARAM_TEXT);
 $downloadselected = optional_param('downloadallselectedfiles', '', PARAM_TEXT);
 $fileids = optional_param('fileids', '', PARAM_TEXT);
 $currenttab = optional_param('tab', 'core', PARAM_TEXT);
+$fileids = optional_param_array('id', '', PARAM_INT);
 
 // admin_externalpage_setup('reportallbackups', '', array('tab' => $currenttab), '', array('pagelayout' => 'report'));
 
@@ -133,10 +136,10 @@ if (has_capability('report/allbackups:delete', $context)) {
 }
 
 // Triggers when "Download all select files" is clicked.
-if (!empty($downloadselected) && confirm_sesskey()) {
-    if (empty($fileids)) {
+// if (!empty($downloadselected) && confirm_sesskey()) {
+    if (!empty($fileids)) {
 
-        $fileids = array();
+        // $fileids = array();
         // Raise memory limit - each file is loaded in PHP memory, so this much be larger than the largest backup file.
         raise_memory_limit(MEMORY_HUGE);
 
@@ -150,11 +153,12 @@ if (!empty($downloadselected) && confirm_sesskey()) {
 
         if ($currenttab == 'autobackup') {
             // Get list of names from the checked backups.
-            foreach ($post as $k => $v) {
-                if (preg_match('/^item(.*)/', $k, $m)) {
-                    $fileids[] = $v; // Use value (filename) in array.
-                }
-            }
+            // foreach ($post as $k => $v) {
+            //     if (preg_match('/^item(.*)/', $k, $m)) {
+            //         $fileids[] = $v; // Use value (filename) in array.
+            //     }
+            // }
+            
 
             // Check nothing weird passed in filename - protect against directory traversal etc.
             // Check to make sure this is an mbz file.
@@ -173,11 +177,13 @@ if (!empty($downloadselected) && confirm_sesskey()) {
             }
         } else {
             // Get list of ids from the checked backups.
-            foreach ($post as $k => $v) {
-                if (preg_match('/^item(\d+)$/', $k, $m)) {
-                    $fileids[] = $m[1];
-                }
-            }
+            // foreach ($post as $k => $v) {
+            //     if (preg_match('/^item(\d+)$/', $k, $m)) {
+            //         $fileids[] = $m[1];
+            //     }
+            // }
+
+            $fileids;
 
             // Check nothing weird passed in filename - protect against directory traversal etc.
             // Check to make sure this is an mbz file.
@@ -199,7 +205,7 @@ if (!empty($downloadselected) && confirm_sesskey()) {
         $zip->finish();
         exit;
     }
-}
+// }
 
 if ($currenttab == 'autobackup') {
     $filters = array('filename' => 0, 'timecreated' => 0);
@@ -266,7 +272,7 @@ if (!$table->is_downloading()) {
     echo html_writer::tag('input', "", array('name' => 'deleteselectedfiles', 'type' => 'submit',
         'id' => 'deleteallselected', 'class' => 'btn btn-secondary',
         'value' => get_string('deleteselectedfiles', 'report_allbackups')));
-    echo html_writer::tag('input', "", array('name' => 'downloadallselectedfiles', 'style' => 'margin: 10px', 'type' => 'submit',
+    echo html_writer::tag('input', "", array('name' => 'downloadallselectedfiles', 'style' => 'margin: 10px',
         'id' => 'downloadallselected', 'class' => 'btn btn-secondary',
         'value' => get_string('downloadallselectedfiles', 'report_allbackups')));
 

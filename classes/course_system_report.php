@@ -94,8 +94,13 @@ class course_system_report extends system_report {
             ->add_joins($this->get_joins())
             ->set_is_sortable(true)
             ->add_field("$filestablealias.id")
-            ->add_callback(static function () {
-                return html_writer::empty_tag('input', array('type' => 'checkbox', 'name' => 'checkbox', 'value' => 1));
+            ->add_callback(static function ($value): string {
+                return html_writer::empty_tag('input', array('type' => 'checkbox',
+                                                             'name' => 'checkbox',
+                                                             'value' => 1,
+                                                             'class' => 'reportcheckbox',
+                                                             'data-id' => $value,
+                                                            ));
             });
 
         $this->add_column($column);
