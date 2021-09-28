@@ -44,6 +44,7 @@ $deleteselected = optional_param('deleteselectedfiles', '', PARAM_TEXT);
 $downloadselected = optional_param('downloadallselectedfiles', '', PARAM_TEXT);
 $currenttab = optional_param('tab', 'core', PARAM_TEXT);
 $fileids =  optional_param_array('id', null, PARAM_INT);
+$fileidsstring =  optional_param('fileids', null, PARAM_TEXT);
 
 // admin_externalpage_setup('reportallbackups', '', array('tab' => $currenttab), '', array('pagelayout' => 'report'));
 
@@ -55,44 +56,36 @@ if (empty($backupdest) && $currenttab == 'autobackup') {
 $context = context_system::instance();
 if (has_capability('report/allbackups:delete', $context)) {
 
-    if (!empty($deleteselected) || !empty($delete)) { // Delete action.
+    if ($deleteselected) { // Delete action.
 
-        if (empty($fileids)) {
-            $fileids = array();
-            // First time form submit - get list of ids from checkboxes or from single delete action.
-            if (!empty($delete)) {
-                // This is a single delete action.
-                $fileids[] = $delete;
-            } else {
-                // Get list of ids from checkboxes.
-                $post = data_submitted();
-                if ($currenttab == "autobackup") {
-                    foreach ($post as $k => $v) {
-                        if (preg_match('/^item(.*)/', $k, $m)) {
-                            $fileids[] = $v; // Use value (filename) in array.
-                        }
-                    }
-                } else {
-                    foreach ($post as $k => $v) {
-                        if (preg_match('/^item(\d+)$/', $k, $m)) {
-                            $fileids[] = $m[1];
-                        }
-                    }
-                }
-            }
+        if (!empty($fileids)) {
+
+
+
+            // Get list of ids from checkboxes.
+            // $post = data_submitted();
+            // if ($currenttab == "autobackup") {
+            //     foreach ($post as $k => $v) {
+            //         if (preg_match('/^item(.*)/', $k, $m)) {
+            //             $fileids[] = $v; // Use value (filename) in array.
+            //         }
+            //     }
+            // } 
+
             // Display confirmation box - are you really sure you want to delete this file?
             echo $OUTPUT->header();
+
+
             $params = array('deleteselectedfiles' => 1, 'confirm' => 1, 'fileids' => implode(',', $fileids), 'tab' => $currenttab);
             $deleteurl = new moodle_url($PAGE->url, $params);
             $numfiles = count($fileids);
             echo $OUTPUT->confirm(get_string('areyousurebulk', 'report_allbackups', $numfiles),
                 $deleteurl, $CFG->wwwroot . '/report/allbackups/index.php');
-
             echo $OUTPUT->footer();
             exit;
         } else if (optional_param('confirm', false, PARAM_BOOL) && confirm_sesskey()) {
             $count = 0;
-            $fileids = explode(',', $fileids);
+            $fileids = explode(',', $fileidsstring);
             foreach ($fileids as $id) {
                 if ($currenttab == 'autobackup') {
                     // Check nothing weird passed in filename - protect against directory traversal etc.
@@ -133,64 +126,65 @@ if (has_capability('report/allbackups:delete', $context)) {
         }
     }
 }
+if (!empty($downloadselected)) {
+    // Triggers when "Download all select files" is clicked.
+    if (!empty($fileids)) {
+        // Raise memory limit - each file is loaded in PHP memory, so this much be larger than the largest backup file.
+        raise_memory_limit(MEMORY_HUGE);
 
-// Triggers when "Download all select files" is clicked.
-if (!empty($fileids)) {
-    // Raise memory limit - each file is loaded in PHP memory, so this much be larger than the largest backup file.
-    raise_memory_limit(MEMORY_HUGE);
+        // Initialize zip for saving multiple selected files at once.
+        $options = new Archive();
+        $options->setSendHttpHeaders(true);
+        $zip = new ZipStream('all_backups.zip', $options);
 
-    // Initialize zip for saving multiple selected files at once.
-    $options = new Archive();
-    $options->setSendHttpHeaders(true);
-    $zip = new ZipStream('all_backups.zip', $options);
+        // Get list of ids from the checked checkboxes.
+        $post = data_submitted();
 
-    // Get list of ids from the checked checkboxes.
-    $post = data_submitted();
+        if ($currenttab == 'autobackup') {
+            // Get list of names from the checked backups.
+            // foreach ($post as $k => $v) {
+            //     if (preg_match('/^item(.*)/', $k, $m)) {
+            //         $fileids[] = $v; // Use value (filename) in array.
+            //     }
+            // }
+            
 
-    if ($currenttab == 'autobackup') {
-        // Get list of names from the checked backups.
-        // foreach ($post as $k => $v) {
-        //     if (preg_match('/^item(.*)/', $k, $m)) {
-        //         $fileids[] = $v; // Use value (filename) in array.
-        //     }
-        // }
-        
-
-        // Check nothing weird passed in filename - protect against directory traversal etc.
-        // Check to make sure this is an mbz file.
-        foreach ($fileids as $filename) {
-
-            if ($filename == clean_param($filename, PARAM_FILE) &&
-                pathinfo($filename, PATHINFO_EXTENSION) == 'mbz' &&
-                is_readable($backupdest .'/'. $filename)) {
-
-                    $file = $backupdest.'/'.$filename;
-                    $filecontents = file_get_contents($file, FILE_USE_INCLUDE_PATH);
-                    $zip->addFile($filename, $filecontents);
-            } else {
-                \core\notification::add(get_string('couldnotdownloadfile', 'report_allbackups'));
-            }
-        }
-    } else {
-        if (!empty($fileids)) {
             // Check nothing weird passed in filename - protect against directory traversal etc.
             // Check to make sure this is an mbz file.
-            foreach ($fileids as $id) {
-                // Translate the file id into file name / contents.
-                $fs = new file_storage();
-                $file = $fs->get_file_by_id((int)$id);
-                $fileext = pathinfo($file->get_filename(), PATHINFO_EXTENSION);
+            foreach ($fileids as $filename) {
 
-                // Make sure the file exists, and it is a backup file we are downloading.
-                if (!empty($file) && $fileext == 'mbz') {
-                    $zip->addFile($file->get_filename(), $file->get_content());
+                if ($filename == clean_param($filename, PARAM_FILE) &&
+                    pathinfo($filename, PATHINFO_EXTENSION) == 'mbz' &&
+                    is_readable($backupdest .'/'. $filename)) {
+
+                        $file = $backupdest.'/'.$filename;
+                        $filecontents = file_get_contents($file, FILE_USE_INCLUDE_PATH);
+                        $zip->addFile($filename, $filecontents);
                 } else {
                     \core\notification::add(get_string('couldnotdownloadfile', 'report_allbackups'));
                 }
             }
+        } else {
+            if (!empty($fileids)) {
+                // Check nothing weird passed in filename - protect against directory traversal etc.
+                // Check to make sure this is an mbz file.
+                foreach ($fileids as $id) {
+                    // Translate the file id into file name / contents.
+                    $fs = new file_storage();
+                    $file = $fs->get_file_by_id((int)$id);
+                    $fileext = pathinfo($file->get_filename(), PATHINFO_EXTENSION);
+
+                    // Make sure the file exists, and it is a backup file we are downloading.
+                    if (!empty($file) && $fileext == 'mbz') {
+                        $zip->addFile($file->get_filename(), $file->get_content());
+                    } else {
+                        \core\notification::add(get_string('couldnotdownloadfile', 'report_allbackups'));
+                    }
+                }
+            }
+            $zip->finish();
+            exit;
         }
-        $zip->finish();
-        exit;
     }
 }
 
