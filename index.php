@@ -55,12 +55,9 @@ if (empty($backupdest) && $currenttab == 'autobackup') {
 
 $context = context_system::instance();
 if (has_capability('report/allbackups:delete', $context)) {
-
     if ($deleteselected) { // Delete action.
 
         if (!empty($fileids)) {
-
-
 
             // Get list of ids from checkboxes.
             // $post = data_submitted();
@@ -74,8 +71,6 @@ if (has_capability('report/allbackups:delete', $context)) {
 
             // Display confirmation box - are you really sure you want to delete this file?
             echo $OUTPUT->header();
-
-
             $params = array('deleteselectedfiles' => 1, 'confirm' => 1, 'fileids' => implode(',', $fileids), 'tab' => $currenttab);
             $deleteurl = new moodle_url($PAGE->url, $params);
             $numfiles = count($fileids);
@@ -206,9 +201,23 @@ if (!$table->is_downloading()) {
     // Print the page header.
     $PAGE->set_title(get_string('pluginname', 'report_allbackups'));
     echo $OUTPUT->header();
+    if (!empty(get_config('backup', 'backup_auto_destination'))) {
+        $row = $tabs = array();
+        $row[] = new tabobject('core',
+            $CFG->wwwroot.'/report/allbackups',
+            get_string('standardbackups', 'report_allbackups'));
+        $row[] = new tabobject('autobackup',
+            $CFG->wwwroot.'/report/allbackups/index.php?tab=autobackup',
+            get_string('autobackup', 'report_allbackups'));
+        $tabs[] = $row;
+        print_tabs($tabs, $currenttab);
+    }
+    if ($currenttab == 'autobackup') {
+        echo $OUTPUT->box(get_string('autobackup_description', 'report_allbackups'));
+    } else {
+        echo $OUTPUT->box(get_string('plugindescription', 'report_allbackups'));
+    }
     echo $report->output();
-
-    // echo '<form action="index.php" method="post" id="allbackupsform">';  
 }
 
 if (!$table->is_downloading()) {
