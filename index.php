@@ -60,14 +60,14 @@ if (has_capability('report/allbackups:delete', $context)) {
         if (!empty($fileids)) {
 
             // Get list of ids from checkboxes.
-            // $post = data_submitted();
-            // if ($currenttab == "autobackup") {
-            //     foreach ($post as $k => $v) {
-            //         if (preg_match('/^item(.*)/', $k, $m)) {
-            //             $fileids[] = $v; // Use value (filename) in array.
-            //         }
-            //     }
-            // } 
+            $post = data_submitted();
+            if ($currenttab == "autobackup") {
+                foreach ($post as $k => $v) {
+                    if (preg_match('/^item(.*)/', $k, $m)) {
+                        $fileids[] = $v; // Use value (filename) in array.
+                    }
+                }
+            } 
 
             // Display confirmation box - are you really sure you want to delete this file?
             echo $OUTPUT->header();
@@ -121,6 +121,8 @@ if (has_capability('report/allbackups:delete', $context)) {
         }
     }
 }
+
+// Triggers when "Download all select files" is clicked.
 if (!empty($downloadselected)) {
     // Triggers when "Download all select files" is clicked.
     if (!empty($fileids)) {
@@ -137,11 +139,11 @@ if (!empty($downloadselected)) {
 
         if ($currenttab == 'autobackup') {
             // Get list of names from the checked backups.
-            // foreach ($post as $k => $v) {
-            //     if (preg_match('/^item(.*)/', $k, $m)) {
-            //         $fileids[] = $v; // Use value (filename) in array.
-            //     }
-            // }
+            foreach ($post as $k => $v) {
+                if (preg_match('/^item(.*)/', $k, $m)) {
+                    $fileids[] = $v; // Use value (filename) in array.
+                }
+            }
             
 
             // Check nothing weird passed in filename - protect against directory traversal etc.
@@ -185,17 +187,18 @@ if (!empty($downloadselected)) {
 
 if ($currenttab == 'autobackup') {
     $filters = array('filename' => 0, 'timecreated' => 0);
+} else {
+    $filters = array();
 }
-
 if ($currenttab == 'autobackup') {
-    $table = system_report_table::create(3, []);
-    $report = system_report_factory::create(course_system_report::class, context_system::instance());
+    $table = new \report_allbackups\output\autobackups_table('autobackups');
 } else {
     $report = system_report_factory::create(course_system_report::class, context_system::instance());
     $table = system_report_table::create(3, []);
     $table->define_baseurl($PAGE->url);
 }
 
+$ufiltering = new \report_allbackups\output\filtering($filters, $PAGE->url);
 if (!$table->is_downloading()) {
     // Only print headers if not asked to download data
     // Print the page header.
@@ -214,9 +217,26 @@ if (!$table->is_downloading()) {
     }
     if ($currenttab == 'autobackup') {
         echo $OUTPUT->box(get_string('autobackup_description', 'report_allbackups'));
+        echo '<form action="index.php" method="post" id="allbackupsform">';
+        echo html_writer::start_div();
+        echo html_writer::tag('input', '', array('type' => 'hidden', 'name' => 'sesskey', 'value' => sesskey()));
+        echo html_writer::tag('input', '', array('type' => 'hidden', 'name' => 'returnto', 'value' => s($PAGE->url->out(false))));
+        echo html_writer::tag('input', '', array('type' => 'hidden', 'name' => 'tab', 'value' => $currenttab));
     } else {
         echo $OUTPUT->box(get_string('plugindescription', 'report_allbackups'));
     }
+    $ufiltering->display_add();
+    $ufiltering->display_active();
+
+} else {
+    // Trigger downloaded event.
+    $event = \report_allbackups\event\report_downloaded::create();
+    $event->trigger();
+}
+if ($currenttab == 'autobackup') {
+    // Get list of files from backup.
+    $table->adddata($ufiltering);
+} else {
     echo $report->output();
 }
 
@@ -225,9 +245,17 @@ if (!$table->is_downloading()) {
     echo html_writer::tag('input', "", array('name' => 'deleteselectedfiles', 'type' => 'submit',
         'id' => 'deleteallselected', 'class' => 'btn btn-secondary',
         'value' => get_string('deleteselectedfiles', 'report_allbackups')));
-    echo html_writer::tag('input', "", array('name' => 'downloadallselectedfiles', 'style' => 'margin: 10px',
+    echo html_writer::tag('input', "", array('name' => 'downloadallselectedfiles', 'style' => 'margin: 10px', 'type' => 'submit',
         'id' => 'downloadallselected', 'class' => 'btn btn-secondary',
         'value' => get_string('downloadallselectedfiles', 'report_allbackups')));
- 
+
+    if ($currenttab == 'autobackup') { 
+        echo html_writer::end_div();
+        echo html_writer::end_tag('form');
+        $event = \report_allbackups\event\report_viewed::create();
+        $event->trigger();
+    }
+
+  
     echo $OUTPUT->footer();
 }
