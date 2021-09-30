@@ -188,7 +188,7 @@ if (!empty($downloadselected)) {
 if ($currenttab == 'autobackup') {
     $filters = array('filename' => 0, 'timecreated' => 0);
 } else {
-    $filters = array();
+    $filters = array('filename' => 0, 'realname' => 0, 'coursecategory' => 0, 'filearea' => 0, 'timecreated' => 0);
 }
 if ($currenttab == 'autobackup') {
     $table = new \report_allbackups\output\autobackups_table('autobackups');
@@ -217,16 +217,20 @@ if (!$table->is_downloading()) {
     }
     if ($currenttab == 'autobackup') {
         echo $OUTPUT->box(get_string('autobackup_description', 'report_allbackups'));
+    } else {
+        echo $OUTPUT->box(get_string('plugindescription', 'report_allbackups'));
+    }
+
+    if ($currenttab == 'autobackup') {
+        $ufiltering->display_add();
+        $ufiltering->display_active();
+    
         echo '<form action="index.php" method="post" id="allbackupsform">';
         echo html_writer::start_div();
         echo html_writer::tag('input', '', array('type' => 'hidden', 'name' => 'sesskey', 'value' => sesskey()));
         echo html_writer::tag('input', '', array('type' => 'hidden', 'name' => 'returnto', 'value' => s($PAGE->url->out(false))));
         echo html_writer::tag('input', '', array('type' => 'hidden', 'name' => 'tab', 'value' => $currenttab));
-    } else {
-        echo $OUTPUT->box(get_string('plugindescription', 'report_allbackups'));
     }
-    $ufiltering->display_add();
-    $ufiltering->display_active();
 
 } else {
     // Trigger downloaded event.
@@ -249,13 +253,12 @@ if (!$table->is_downloading()) {
         'id' => 'downloadallselected', 'class' => 'btn btn-secondary',
         'value' => get_string('downloadallselectedfiles', 'report_allbackups')));
 
-    if ($currenttab == 'autobackup') { 
+    if ($currenttab == 'autobackup') {
         echo html_writer::end_div();
         echo html_writer::end_tag('form');
         $event = \report_allbackups\event\report_viewed::create();
         $event->trigger();
     }
 
-  
     echo $OUTPUT->footer();
 }
