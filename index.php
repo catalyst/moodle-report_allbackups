@@ -21,8 +21,6 @@
  * @copyright  2020 Catalyst IT
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
-declare(strict_types=1);
-
 use ZipStream\Option\Archive;
 use ZipStream\ZipStream;
 use core_reportbuilder\system_report_factory;
@@ -57,18 +55,16 @@ $context = context_system::instance();
 if (has_capability('report/allbackups:delete', $context)) {
     if ($deleteselected) { // Delete action.
 
-        if (!empty($fileids)) {
-
-            // Get list of ids from checkboxes.
+        if ($currenttab == "autobackup") {
             $post = data_submitted();
-            if ($currenttab == "autobackup") {
-                foreach ($post as $k => $v) {
-                    if (preg_match('/^item(.*)/', $k, $m)) {
-                        $fileids[] = $v; // Use value (filename) in array.
-                    }
+            foreach ($post as $k => $v) {
+                if (preg_match('/^item(.*)/', $k, $m)) {
+                    $fileids[] = $v; // Use value (filename) in array.
                 }
-            } 
+            }
+        }
 
+        if (!empty($fileids)) {
             // Display confirmation box - are you really sure you want to delete this file?
             echo $OUTPUT->header();
             $params = array('deleteselectedfiles' => 1, 'confirm' => 1, 'fileids' => implode(',', $fileids), 'tab' => $currenttab);
@@ -125,27 +121,28 @@ if (has_capability('report/allbackups:delete', $context)) {
 // Triggers when "Download all select files" is clicked.
 if (!empty($downloadselected)) {
     // Triggers when "Download all select files" is clicked.
-    if (!empty($fileids)) {
-        // Raise memory limit - each file is loaded in PHP memory, so this much be larger than the largest backup file.
-        raise_memory_limit(MEMORY_HUGE);
 
-        // Initialize zip for saving multiple selected files at once.
-        $options = new Archive();
-        $options->setSendHttpHeaders(true);
-        $zip = new ZipStream('all_backups.zip', $options);
+    // Raise memory limit - each file is loaded in PHP memory, so this much be larger than the largest backup file.
+    raise_memory_limit(MEMORY_HUGE);
 
-        // Get list of ids from the checked checkboxes.
+    // Initialize zip for saving multiple selected files at once.
+    $options = new Archive();
+    $options->setSendHttpHeaders(true);
+    $zip = new ZipStream('all_backups.zip', $options);
+
+    if ($currenttab == 'autobackup') {
+        // Get list of names from the checked backups.
         $post = data_submitted();
-
-        if ($currenttab == 'autobackup') {
-            // Get list of names from the checked backups.
-            foreach ($post as $k => $v) {
-                if (preg_match('/^item(.*)/', $k, $m)) {
-                    $fileids[] = $v; // Use value (filename) in array.
-                }
+        foreach ($post as $k => $v) {
+            if (preg_match('/^item(.*)/', $k, $m)) {
+                $fileids[] = $v; // Use value (filename) in array.
             }
-            
-
+        }
+    }
+    if (!empty($fileids)) {
+ 
+        if ($currenttab == 'autobackup') {
+       
             // Check nothing weird passed in filename - protect against directory traversal etc.
             // Check to make sure this is an mbz file.
             foreach ($fileids as $filename) {
@@ -153,7 +150,6 @@ if (!empty($downloadselected)) {
                 if ($filename == clean_param($filename, PARAM_FILE) &&
                     pathinfo($filename, PATHINFO_EXTENSION) == 'mbz' &&
                     is_readable($backupdest .'/'. $filename)) {
-
                         $file = $backupdest.'/'.$filename;
                         $filecontents = file_get_contents($file, FILE_USE_INCLUDE_PATH);
                         $zip->addFile($filename, $filecontents);
@@ -161,6 +157,8 @@ if (!empty($downloadselected)) {
                     \core\notification::add(get_string('couldnotdownloadfile', 'report_allbackups'));
                 }
             }
+            $zip->finish();
+            exit;
         } else {
             if (!empty($fileids)) {
                 // Check nothing weird passed in filename - protect against directory traversal etc.
