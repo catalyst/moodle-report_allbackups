@@ -44,7 +44,7 @@ $currenttab = optional_param('tab', 'core', PARAM_TEXT);
 $fileids =  optional_param_array('id', null, PARAM_INT);
 $fileidsstring =  optional_param('fileids', null, PARAM_TEXT);
 
-// admin_externalpage_setup('reportallbackups', '', array('tab' => $currenttab), '', array('pagelayout' => 'report'));
+admin_externalpage_setup('reportallbackups', '', array('tab' => $currenttab), '', array('pagelayout' => 'report'));
 
 $backupdest = get_config('backup', 'backup_auto_destination');
 if (empty($backupdest) && $currenttab == 'autobackup') {
