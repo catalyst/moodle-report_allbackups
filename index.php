@@ -41,17 +41,14 @@ $filename = optional_param('filename', '', PARAM_TEXT);
 $deleteselected = optional_param('deleteselectedfiles', '', PARAM_TEXT);
 $downloadselected = optional_param('downloadallselectedfiles', '', PARAM_TEXT);
 $currenttab = optional_param('tab', 'core', PARAM_TEXT);
-$fileids =  optional_param_array('id', null, PARAM_INT);
-$fileidsstring =  optional_param('fileids', null, PARAM_TEXT);
+$fileids = optional_param_array('id', null, PARAM_INT);
+$fileidsstring = optional_param('fileids', null, PARAM_TEXT);
 
 admin_externalpage_setup('reportallbackups', '', array('tab' => $currenttab), '', array('pagelayout' => 'report'));
 
 $backupdest = get_config('backup', 'backup_auto_destination');
-if (empty($backupdest) && $currenttab == 'autobackup') {
-    print_error(get_string("autobackupnotset", "report_allbackups"));
-}
-
 $context = context_system::instance();
+
 if (has_capability('report/allbackups:delete', $context)) {
     if ($deleteselected) { // Delete action.
 
@@ -140,9 +137,7 @@ if (!empty($downloadselected)) {
         }
     }
     if (!empty($fileids)) {
- 
         if ($currenttab == 'autobackup') {
-       
             // Check nothing weird passed in filename - protect against directory traversal etc.
             // Check to make sure this is an mbz file.
             foreach ($fileids as $filename) {
@@ -222,7 +217,6 @@ if (!$table->is_downloading()) {
     if ($currenttab == 'autobackup') {
         $ufiltering->display_add();
         $ufiltering->display_active();
-    
         echo '<form action="index.php" method="post" id="allbackupsform">';
         echo html_writer::start_div();
         echo html_writer::tag('input', '', array('type' => 'hidden', 'name' => 'sesskey', 'value' => sesskey()));

@@ -46,8 +46,8 @@ require_once($CFG->dirroot . '/course/lib.php');
  *
  * This entity defines all the course columns and filters to be used in any report.
  *
- * @package     core_reportbuilder
- * @copyright   2021 Sara Arjona <sara@moodle.com> based on Marina Glancy code.
+ * @package     report_allbackups
+ * @copyright   2021 Ant
  * @license     http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class files extends base {

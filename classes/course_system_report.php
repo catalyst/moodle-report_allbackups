@@ -14,10 +14,11 @@
 // You should have received a copy of the GNU General Public License
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
-declare(strict_types=1);
 
+declare(strict_types=1);
 namespace report_allbackups;
 
+defined('MOODLE_INTERNAL') || die();
 use core_reportbuilder\local\filters\text;
 use core_reportbuilder\local\filters\date;
 use report_allbackups\files;
@@ -33,7 +34,6 @@ use moodle_url;
 use context_system;
 
 require_once($CFG->libdir . '/adminlib.php');
-
 
 /**
  * System report for testing the course entity
@@ -157,17 +157,19 @@ class course_system_report extends system_report {
 
         $this->add_column($column);
 
-
         // Username column.
         $column = (new column(
             'username',
             new lang_string('username'),
             $entityfiles->get_entity_name()
         ))
-            ->add_join("LEFT JOIN {user} {$entituseralias} 
+            ->add_join("LEFT JOIN {user} {$entituseralias}
                         ON {$entituseralias}.id = {$filestablealias}.userid")
             ->set_is_sortable(true)
-            ->add_fields("{$entituseralias}.id, {$entituseralias}.firstname, {$entituseralias}.lastname,  {$entituseralias}.username")
+            ->add_fields("{$entituseralias}.id,
+                          {$entituseralias}.firstname,
+                          {$entituseralias}.lastname,
+                          {$entituseralias}.username")
             ->add_callback(static function ($value, $row): string {
                     return html_writer::link(
                         new moodle_url('/user/profile.php', ['id' => $row->id]),

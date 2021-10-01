@@ -48,6 +48,7 @@ class coursecategoryfilter extends \user_filter_simpleselect {
         $ids[] = $value; // Add parent id to this category as well.
 
         list($insql, $courseparams) = $DB->get_in_or_equal($ids, SQL_PARAMS_NAMED);
+        admin_externalpage_setup('reportallbackups', '', array('tab' => $currenttab), '', array('pagelayout' => 'report'));
 
         return array("$field $insql", $courseparams);
     }
