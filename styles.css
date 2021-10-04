@@ -1,3 +1,4 @@
+/* stylelint-disable declaration-no-important */
 #page-admin-report-allbackups-index .initialbar {
     display: none !important;
 }
