@@ -32,6 +32,8 @@ require_once($CFG->dirroot . '/report/allbackups/.extlib/php-enum/Enum.php');
 use ZipStream\Option\Archive;
 use ZipStream\ZipStream;
 
+
+
 $delete = optional_param('delete', '', PARAM_TEXT);
 $filename = optional_param('filename', '', PARAM_TEXT);
 $deleteselected = optional_param('deleteselectedfiles', '', PARAM_TEXT);
@@ -40,6 +42,12 @@ $fileids = optional_param('fileids', '', PARAM_TEXT);
 $currenttab = optional_param('tab', 'core', PARAM_TEXT);
 
 admin_externalpage_setup('reportallbackups', '', array('tab' => $currenttab), '', array('pagelayout' => 'report'));
+
+global $CFG;
+if (!$CFG->report_allbackups_isactive) {
+    echo "Report 'allbackups' not active";
+    die();
+}
 
 $backupdest = get_config('backup', 'backup_auto_destination');
 if (empty($backupdest) && $currenttab == 'autobackup') {

@@ -14,6 +14,12 @@
 // You should have received a copy of the GNU General Public License
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
+
+//
+// Andreas Schenkel: Added a feature to be able to activate the report be config.php
+//
+//
+
 /**
  * Plugin version and other meta-data are defined here.
  *
@@ -25,7 +31,7 @@
 defined('MOODLE_INTERNAL') || die();
 
 $plugin->component = 'report_allbackups';
-$plugin->release = '0.1.2';
-$plugin->version = 2020120202;
+$plugin->release = '1.1.2';
+$plugin->version = 2021111601;
 $plugin->requires = 2019111800; // Requires 3.8.
 $plugin->maturity = MATURITY_STABLE;
