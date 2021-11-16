@@ -14,12 +14,6 @@
 // You should have received a copy of the GNU General Public License
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
-
-//
-// Andreas Schenkel: Added a feature to be able to activate the report be config.php
-//
-//
-
 /**
  * Plugin version and other meta-data are defined here.
  *

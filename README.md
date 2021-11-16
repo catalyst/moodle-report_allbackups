@@ -2,6 +2,9 @@
 
 This report allows access to all backups on a site - including those stored in the users private files area and can download/restore or delete the backup files.
 
+Andreas Schenkel: Added a feature to be able to activate the report be config.php
+
+
 # Branches #
 The following Moodle branches are supported
 
