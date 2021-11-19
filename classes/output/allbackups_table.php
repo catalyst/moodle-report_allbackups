@@ -39,6 +39,8 @@ require_once($CFG->libdir . '/tablelib.php');
  */
 class allbackups_table extends \table_sql {
 
+    public $useridfield = 'userid';
+
     /**
      * Constructor
      * @param int $uniqueid all tables have to have a unique id, this is used
