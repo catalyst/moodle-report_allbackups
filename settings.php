@@ -39,5 +39,5 @@ $settings->add(new admin_setting_configcheckbox(
     'report_allbackups_isactive',
     get_string('isactive', 'report_allbackups'),
     get_string('configisactive', 'report_allbackups'),
-    0
+    1
 ));
