@@ -48,3 +48,6 @@ $string['plugindescription'] = 'This report shows all *.mbz (Moodle backup files
 $string['pluginname'] = 'All backups';
 $string['privacy:metadata'] = 'The all backups report plugin does not store any personal data';
 $string['standardbackups'] = 'Standard backups';
+
+$string['isactive'] = 'report allbackups is active';
+$string['configisactive'] = 'When activated the report can be used.';

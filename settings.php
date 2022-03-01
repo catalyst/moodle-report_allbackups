@@ -25,8 +25,19 @@
 
 defined('MOODLE_INTERNAL') || die();
 
-$ADMIN->add('reports', new admin_externalpage('reportallbackups', get_string('pluginname', 'report_allbackups'),
-    "$CFG->wwwroot/report/allbackups/index.php", 'report/allbackups:view'));
+if ($CFG->report_allbackups_isactive) {
+    $ADMIN->add('reports', new admin_externalpage(
+        'reportallbackups',
+        get_string('pluginname', 'report_allbackups'),
+        "$CFG->wwwroot/report/allbackups/index.php",
+        'report/allbackups:view'
+    ));
+}
 
-// No report settings.
-$settings = null;
+$settings = new admin_settingpage('report_allbackups', 'AllBackups');
+$settings->add(new admin_setting_configcheckbox(
+    'report_allbackups_isactive',
+    get_string('isactive', 'report_allbackups'),
+    get_string('configisactive', 'report_allbackups'),
+    1
+));
