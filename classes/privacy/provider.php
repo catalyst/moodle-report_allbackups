@@ -24,8 +24,6 @@
 
 namespace report_allbackups\privacy;
 
-defined('MOODLE_INTERNAL') || die();
-
 /**
  * Privacy Subsystem for report_allbackups implementing null_provider.
  *

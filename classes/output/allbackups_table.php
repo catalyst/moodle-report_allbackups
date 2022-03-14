@@ -39,6 +39,11 @@ require_once($CFG->libdir . '/tablelib.php');
  */
 class allbackups_table extends \table_sql {
 
+    /**
+     * User id field.
+     *
+     * @var string
+     */
     public $useridfield = 'userid';
 
     /**

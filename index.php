@@ -38,7 +38,7 @@ admin_externalpage_setup('reportallbackups', '', array('tab' => $currenttab), ''
 
 $backupdest = get_config('backup', 'backup_auto_destination');
 if (empty($backupdest) && $currenttab == 'autobackup') {
-    print_error(get_string("autobackupnotset", "report_allbackups"));
+    throw new moodle_exception("autobackupnotset", "report_allbackups");
 }
 
 $context = context_system::instance();

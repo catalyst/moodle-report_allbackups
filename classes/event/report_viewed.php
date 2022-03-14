@@ -23,8 +23,6 @@
  */
 namespace report_allbackups\event;
 
-defined('MOODLE_INTERNAL') || die();
-
 /**
  * The report_allbackups report viewed event class.
  *
