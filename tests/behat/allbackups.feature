@@ -5,6 +5,9 @@ Feature: All backups report.
     Given the following "users" exist:
       | username | firstname | lastname | email |
       | student1 | Student | 1 | student1@example.com |
+    And the following "blocks" exist:
+      | blockname     | contextlevel | reference | pagetypepattern | defaultregion |
+      | private_files | System       | 1         | my-index        | side-post     |
     And I log in as "student1"
     And I follow "Manage private files..."
     And I upload "report/allbackups/tests/fixtures/fakebackup1-UFC101-123456.mbz" file to "Files" filemanager
