@@ -62,15 +62,6 @@ class report_downloaded extends \core\event\base {
     }
 
     /**
-     * Return the legacy event log data.
-     *
-     * @return array
-     */
-    protected function get_legacy_logdata() {
-        return array(SITEID, 'admin', 'All backups report download', "report/allbackups/index.php", '');
-    }
-
-    /**
      * Returns relevant URL.
      *
      * @return \moodle_url
