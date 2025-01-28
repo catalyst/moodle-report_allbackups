@@ -79,3 +79,59 @@ function report_allbackups_pluginfile($course,
     }
 }
 
+/**
+ * Creates and sends a ZIP file to the browser using native PHP ZipArchive.
+ *
+ * @param array  $filepaths Array of files to be compressed. Each element must be an associative array with:
+ *                         [
+ *                           'filepath' => '/complete/path/to/file',
+ *                           'filename' => 'nameInsideZIP.mbz'
+ *                         ]
+ * @param string $zipname   (Optional) Base name for the ZIP file to download; if not provided,
+ *                         it will use a timestamp in the name
+ * @throws moodle_exception If ZIP cannot be created or if no files exist
+ */
+function report_allbackups_download_zip(array $filepaths, string $zipname = '') {
+    global $CFG;
+
+    if (empty($filepaths)) {
+        throw new moodle_exception('couldnotdownloadfile', 'report_allbackups');
+    }
+
+    // If no ZIP name provided, generate one with timestamp.
+    if (empty($zipname)) {
+        // Format: YYYYmmdd_HHMM_all_backups.zip
+        $zipname = date('Ymd_Hi') . '_all_backups.zip';
+    }
+
+    // Create a temporary file.
+    $tempzip = tempnam(sys_get_temp_dir(), 'moodle_allbackups_');
+
+    $zip = new ZipArchive();
+    if ($zip->open($tempzip, ZipArchive::CREATE | ZipArchive::OVERWRITE) !== true) {
+        throw new moodle_exception('couldnotdownloadfile', 'report_allbackups', '', null,
+            'Unable to create temporary ZIP archive.');
+    }
+
+    // Add each file to the ZIP.
+    foreach ($filepaths as $info) {
+        if (!empty($info['filepath']) && !empty($info['filename'])) {
+            $localpath = $info['filepath'];
+            $nameinzip = $info['filename'];
+            if (is_readable($localpath)) {
+                $zip->addFile($localpath, $nameinzip);
+            }
+        }
+    }
+    $zip->close();
+
+    // Send headers to force download.
+    header('Content-Type: application/zip');
+    header('Content-Disposition: attachment; filename="' . $zipname . '"');
+    header('Content-Length: ' . filesize($tempzip));
+    flush();
+
+    readfile($tempzip);
+    @unlink($tempzip);
+    exit;
+}
