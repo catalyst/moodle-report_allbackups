@@ -21,7 +21,6 @@
  * @copyright  2020 Catalyst IT
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
-use ZipStream\Option\Archive;
 use ZipStream\ZipStream;
 
 require_once('../../config.php');
@@ -132,9 +131,10 @@ if (!empty($downloadselected) && confirm_sesskey()) {
         raise_memory_limit(MEMORY_HUGE);
 
         // Initialize zip for saving multiple selected files at once.
-        $options = new Archive();
-        $options->setSendHttpHeaders(true);
-        $zip = new ZipStream('all_backups.zip', $options);
+        $zip = new ZipStream(
+            outputName: 'all_backups.zip',
+            sendHttpHeaders: true,
+        );
 
         // Get list of ids from the checked checkboxes.
         $post = data_submitted();
