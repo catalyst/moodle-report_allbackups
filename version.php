@@ -19,14 +19,14 @@
  *
  * @package     report_allbackups
  * @copyright   2020 Catalyst IT
- * @license     https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ * @license     http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
 defined('MOODLE_INTERNAL') || die();
 
 $plugin->component = 'report_allbackups';
-$plugin->release = '4.0 (2022031501)';
-$plugin->version = 2022031501;
-$plugin->requires = 2021091100; // Requires 4.0.
-$plugin->maturity = MATURITY_STABLE;
-$plugin->supported = [400, 400];
+$plugin->release   = '4.5 (2025012800)'; // Cambia el número si haces varias versiones el mismo día.
+$plugin->version   = 2025012800;         // YYYYMMDDXX.
+$plugin->requires  = 2021091100;         // Moodle 4.0.
+$plugin->maturity  = MATURITY_STABLE;
+$plugin->supported = [400, 405];         // Compatible con la versión 4.5.
