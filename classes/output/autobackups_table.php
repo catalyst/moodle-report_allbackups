@@ -51,9 +51,8 @@ class autobackups_table extends \flexible_table {
         $url->param('tab', 'autobackup');
         $this->define_baseurl($url);
         $this->pageable(true);
+
         if (!optional_param('downloadallselectedfiles', 0, PARAM_ALPHA)) {
-            // Set Download flag so we can check it before defining columns/headers to show.
-            // Don't set if downloading files.
             $this->is_downloading(optional_param('download', '', PARAM_ALPHA), 'allbackups');
         }
 
@@ -63,7 +62,6 @@ class autobackups_table extends \flexible_table {
 
         // Add selector column if not downloading report.
         if (!$this->is_downloading()) {
-            // Add selector column to report.
             $columns[] = 'selector';
 
             $options = [
@@ -96,9 +94,10 @@ class autobackups_table extends \flexible_table {
      * Helper function to add data to table.
      * Implements custom sort/pagination as we don't use sql to build this table.
      *
+     * @param \user_filtering $ufiltering
      * @throws \dml_exception
      */
-    public function adddata() {
+    public function adddata($ufiltering) {
         global $SESSION;
 
         $rows = array();
@@ -181,14 +180,13 @@ class autobackups_table extends \flexible_table {
             $output .= ' | '. html_writer::link($deleteurl, get_string('delete'));
         }
         return $output;
-
     }
 
     /**
      * Display size row.
      *
      * @param \stdClass $row
-     * @return \lang_string|string
+     * @return string
      */
     public function col_size($row) {
         return display_size($row->size);
@@ -207,7 +205,7 @@ class autobackups_table extends \flexible_table {
     /**
      * Function to display the checkbox for bulk actions.
      *
-     * @param \stdClass $row the data from the db containing all fields from the current row.
+     * @param \stdClass $row
      * @return string
      */
     public function col_selector($row) {
@@ -224,12 +222,11 @@ class autobackups_table extends \flexible_table {
         return $OUTPUT->render($itemcheckbox);
     }
 
-
     /**
      * Function to filter results using the filename.
      *
      * @param string $filename
-     * @return bool|int
+     * @return bool
      */
     private function filter_filename($filename) {
         global $SESSION;
@@ -238,6 +235,9 @@ class autobackups_table extends \flexible_table {
         if (!empty($SESSION->user_filtering['filename'])) {
             foreach ($SESSION->user_filtering['filename'] as $filter) {
                 $found = $this->filter_filename_helper($filter['operator'], $filter['value'], $filename);
+                if (!$found) {
+                    break;
+                }
             }
         }
         return $found;
@@ -252,7 +252,6 @@ class autobackups_table extends \flexible_table {
      * @return false|int
      */
     private function filter_filename_helper($operator, $value, $filename) {
-        // Filter rows based on any filters set.
         switch ($operator) {
             case 0: // Contains.
                 $regex = "/" . $value . "/";
@@ -272,6 +271,8 @@ class autobackups_table extends \flexible_table {
             case 5: // Empty.
                 $regex = "/^$/";
                 break;
+            default:
+                $regex = "/.*/";
         }
         return preg_match($regex, $filename);
     }
@@ -288,6 +289,9 @@ class autobackups_table extends \flexible_table {
         if (!empty($SESSION->user_filtering['timecreated'])) {
             foreach ($SESSION->user_filtering['timecreated'] as $filter) {
                 $found = $this->filter_timemodified_helper($filter['before'], $filter['after'], $timemodified);
+                if (!$found) {
+                    break;
+                }
             }
         }
 
@@ -304,7 +308,7 @@ class autobackups_table extends \flexible_table {
      */
     private function filter_timemodified_helper($before, $after, $timemodified) {
         $found = true;
-        if (!empty($before)) { // Only if the before value is not empty.
+        if (!empty($before)) {
             if ($before < $timemodified) {
                 $found = false;
             }
@@ -315,5 +319,18 @@ class autobackups_table extends \flexible_table {
             }
         }
         return $found;
+    }
+
+    /**
+     * Sets the number of rows to display per page.
+     *
+     * @param int $perpage Number of rows to display per page
+     * @param int $maxrows Maximum number of rows allowed, defaults to 5000
+     */
+    public function pagesize($perpage, $maxrows = 5000) {
+        // Redefine to force the pagination that flexible_table handles.
+        parent::pagesize($perpage, $maxrows);
+        // Call setup again in case configuration needs to be refreshed.
+        parent::setup();
     }
 }
