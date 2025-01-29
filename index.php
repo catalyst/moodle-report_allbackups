@@ -26,12 +26,15 @@ use ZipStream\ZipStream;
 require_once('../../config.php');
 require_once($CFG->libdir . '/adminlib.php');
 
+// Get all the required parameters.
 $delete = optional_param('delete', '', PARAM_TEXT);
 $filename = optional_param('filename', '', PARAM_TEXT);
 $deleteselected = optional_param('deleteselectedfiles', '', PARAM_TEXT);
 $downloadselected = optional_param('downloadallselectedfiles', '', PARAM_TEXT);
 $fileids = optional_param('fileids', '', PARAM_TEXT);
 $currenttab = optional_param('tab', 'core', PARAM_TEXT);
+// Records per page, defaults to 20, 0 means show all.
+$perpage = optional_param('perpage', 20, PARAM_INT);
 
 admin_externalpage_setup('reportallbackups', '', array('tab' => $currenttab), '', array('pagelayout' => 'report'));
 
@@ -130,9 +133,12 @@ if (!empty($downloadselected) && confirm_sesskey()) {
         // Raise memory limit - each file is loaded in PHP memory, so this much be larger than the largest backup file.
         raise_memory_limit(MEMORY_HUGE);
 
-        // Initialize zip for saving multiple selected files at once.
+        // Initialize zip for saving multiple selected files at once with ANSSI format filename.
+        // Format: YYYY-MM-DD_HHMMSS_anssi_all_backups.zip for enhanced traceability.
+        $timestamp = date('Y-m-d_His');
+        $zipname = $timestamp . '_all_backups.zip';
         $zip = new ZipStream(
-            outputName: 'all_backups.zip',
+            outputName: $zipname,
             sendHttpHeaders: true,
         );
 
@@ -192,11 +198,14 @@ if (!empty($downloadselected) && confirm_sesskey()) {
     }
 }
 
+// Setup filter arrays for different tabs.
 if ($currenttab == 'autobackup') {
     $filters = array('filename' => 0, 'timecreated' => 0);
 } else {
     $filters = array('filename' => 0, 'realname' => 0, 'coursecategory' => 0, 'filearea' => 0, 'timecreated' => 0);
 }
+
+// Initialize appropriate table based on current tab.
 if ($currenttab == 'autobackup') {
     $table = new \report_allbackups\output\autobackups_table('autobackups');
 } else {
@@ -210,6 +219,42 @@ if (!$table->is_downloading()) {
     // Print the page header.
     $PAGE->set_title(get_string('pluginname', 'report_allbackups'));
     echo $OUTPUT->header();
+
+    // Calculate and display backup counts in a summary box.
+    // This query gets the count of standard backup files.
+    $standardcount = $DB->count_records_sql("SELECT COUNT(*)
+        FROM {files} f
+        WHERE f.filename LIKE '%.mbz'
+        AND f.component <> 'tool_recyclebin'
+        AND f.filearea <> 'draft'");
+
+    // Count autobackups by iterating through the backup directory.
+    $autobackupcount = 0;
+    if (!empty($backupdest) && is_dir($backupdest)) {
+        $directory = new RecursiveDirectoryIterator($backupdest);
+        $iterator = new RecursiveIteratorIterator($directory);
+        foreach ($iterator as $file) {
+            if ($file->isFile() && $file->getExtension() === 'mbz') {
+                $autobackupcount++;
+            }
+        }
+    }
+
+    // Display the backup summary information (dynamic per tab)
+    $summarybox = html_writer::start_div('backup-summary alert alert-info');
+
+    if ($currenttab == 'core') {
+        $summarybox .= html_writer::tag('p', get_string('standardbackups', 'report_allbackups') . ': ' . $standardcount);
+    } else if ($currenttab == 'autobackup') {
+        $summarybox .= html_writer::tag('p', get_string('autobackup', 'report_allbackups') . ': ' . $autobackupcount);
+    }
+
+    // Total always visible
+    $summarybox .= html_writer::tag('p', get_string('total', 'report_allbackups') . ': ' . ($standardcount + $autobackupcount));
+
+    $summarybox .= html_writer::end_div();
+    echo $summarybox;
+    
     if (!empty(get_config('backup', 'backup_auto_destination'))) {
         $row = $tabs = array();
         $row[] = new tabobject('core',
@@ -229,6 +274,23 @@ if (!$table->is_downloading()) {
     $ufiltering->display_add();
     $ufiltering->display_active();
 
+    // Setup records per page selector and its options.
+    $perpageoptions = [
+        10 => 10,
+        20 => 20,
+        50 => 50,
+        100 => 100,
+        200 => 200,
+        500 => 500,
+        0 => get_string('all')
+    ];
+
+    $perpageselect = new single_select($PAGE->url, 'perpage', $perpageoptions, $perpage, null);
+    $perpageselect->set_label(get_string('listperpage', 'report_allbackups'));
+
+    // Display records per page selector.
+    echo html_writer::div($OUTPUT->render($perpageselect), 'perpagecombobox');
+
     echo '<form action="index.php" method="post" id="allbackupsform">';
     echo html_writer::start_div();
     echo html_writer::tag('input', '', array('type' => 'hidden', 'name' => 'sesskey', 'value' => sesskey()));
@@ -239,10 +301,16 @@ if (!$table->is_downloading()) {
     $event = \report_allbackups\event\report_downloaded::create();
     $event->trigger();
 }
+
+// Adjust pagination for table display.
+$perpageval = ($perpage == 0) ? 999999 : $perpage;
+
 if ($currenttab == 'autobackup') {
     // Get list of files from backup.
+    $table->pagesize($perpageval, 999999);
     $table->adddata($ufiltering);
 } else {
+    // Setup SQL query for standard backups.
     list($extrasql, $params) = $ufiltering->get_sql_filter();
     $fields = 'f.id, f.contextid, f.component, f.filearea, f.filename, f.userid, f.filesize, f.timecreated, f.filepath, f.itemid';
     $fields .= \core_user\fields::for_name()->get_sql('u')->selects;
@@ -259,11 +327,11 @@ if ($currenttab == 'autobackup') {
     }
 
     $table->set_sql($fields, $from, $where, $params);
-    $table->out(40, true);
+    $table->out($perpageval, true);
 }
 
 if (!$table->is_downloading()) {
-
+    // Display delete and download buttons.
     echo html_writer::tag('input', "", array('name' => 'deleteselectedfiles', 'type' => 'submit',
         'id' => 'deleteallselected', 'class' => 'btn btn-secondary',
         'value' => get_string('deleteselectedfiles', 'report_allbackups')));
@@ -273,7 +341,10 @@ if (!$table->is_downloading()) {
 
     echo html_writer::end_div();
     echo html_writer::end_tag('form');
+    
+    // Trigger the report viewed event.
     $event = \report_allbackups\event\report_viewed::create();
     $event->trigger();
+    
     echo $OUTPUT->footer();
 }
