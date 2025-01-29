@@ -134,9 +134,9 @@ if (!empty($downloadselected) && confirm_sesskey()) {
         raise_memory_limit(MEMORY_HUGE);
 
         // Initialize zip for saving multiple selected files at once with ANSSI format filename.
-        // Format: YYYY-MM-DD_HHMMSS_anssi_all_backups.zip for enhanced traceability.
+        // Format: YYYY-MM-DD_HHMMSS_all-backups.zip for enhanced traceability.
         $timestamp = date('Y-m-d_His');
-        $zipname = $timestamp . '_all_backups.zip';
+        $zipname = $timestamp . '-all_backups.zip';
         $zip = new ZipStream(
             outputName: $zipname,
             sendHttpHeaders: true,
