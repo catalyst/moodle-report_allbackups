@@ -96,9 +96,10 @@ class autobackups_table extends \flexible_table {
      * Helper function to add data to table.
      * Implements custom sort/pagination as we don't use sql to build this table.
      *
+     * @param \user_filtering $ufiltering
      * @throws \dml_exception
      */
-    public function adddata() {
+    public function adddata($ufiltering) {
         global $SESSION;
 
         $rows = array();
@@ -181,7 +182,6 @@ class autobackups_table extends \flexible_table {
             $output .= ' | '. html_writer::link($deleteurl, get_string('delete'));
         }
         return $output;
-
     }
 
     /**
@@ -224,12 +224,11 @@ class autobackups_table extends \flexible_table {
         return $OUTPUT->render($itemcheckbox);
     }
 
-
     /**
      * Function to filter results using the filename.
      *
      * @param string $filename
-     * @return bool|int
+     * @return false|int
      */
     private function filter_filename($filename) {
         global $SESSION;
@@ -238,6 +237,9 @@ class autobackups_table extends \flexible_table {
         if (!empty($SESSION->user_filtering['filename'])) {
             foreach ($SESSION->user_filtering['filename'] as $filter) {
                 $found = $this->filter_filename_helper($filter['operator'], $filter['value'], $filename);
+                if (!$found) {
+                    break;
+                }
             }
         }
         return $found;
@@ -288,6 +290,9 @@ class autobackups_table extends \flexible_table {
         if (!empty($SESSION->user_filtering['timecreated'])) {
             foreach ($SESSION->user_filtering['timecreated'] as $filter) {
                 $found = $this->filter_timemodified_helper($filter['before'], $filter['after'], $timemodified);
+                if (!$found) {
+                    break;
+                }
             }
         }
 
@@ -315,5 +320,18 @@ class autobackups_table extends \flexible_table {
             }
         }
         return $found;
+    }
+
+    /**
+     * Sets the number of rows to display per page.
+     * Forces the table to refresh its configuration after changing the pagination.
+     *
+     * @param int $perpage Number of rows to display per page
+     * @param int $maxrows Maximum number of rows allowed, defaults to 5000
+     */
+    public function pagesize($perpage, $maxrows = 5000) {
+        // Set the page size and refresh table configuration.
+        parent::pagesize($perpage, $maxrows);
+        parent::setup();
     }
 }
