@@ -280,10 +280,20 @@ if ($currenttab == 'autobackup') {
         $from .= ' JOIN {context} cx ON cx.id = f.contextid AND cx.contextlevel = '.CONTEXT_COURSE .
                  ' JOIN {course} c ON c.id = cx.instanceid';
     }
-    $where = "f.filename like '%.mbz' and f.component <> 'tool_recyclebin' and f.filearea <> 'draft'";
+    $config = get_config('report_allbackups');
+    $components = !empty($config->components) ? $config->components : 'backup,user';
+    $fileareas = !empty($config->fileareas) ? $config->fileareas : 'activity,automated,backup,course,private';
+    $componentslist = explode(',', $components);
+    $fileareaslist = explode(',', $fileareas);
+    [$insqlcomp, $inparamscomp] = $DB->get_in_or_equal($componentslist, SQL_PARAMS_NAMED, 'comp_');
+    [$insqlarea, $inparamsarea] = $DB->get_in_or_equal($fileareaslist, SQL_PARAMS_NAMED, 'filearea_');
+
+    $where = "f.mimetype = 'application/vnd.moodle.backup' AND f.component $insqlcomp AND f.filearea $insqlarea";
     if (!empty($extrasql)) {
         $where .= " and ".$extrasql;
     }
+
+    $params = array_merge($params, $inparamscomp, $inparamsarea);
 
     $table->set_sql($fields, $from, $where, $params);
     $table->out($perpageval, true);
