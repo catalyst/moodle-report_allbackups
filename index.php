@@ -202,7 +202,7 @@ if (!empty($downloadselected) && confirm_sesskey()) {
 if ($currenttab == 'autobackup') {
     $filters = array('filename' => 0, 'timecreated' => 0);
 } else {
-    $filters = array('filename' => 0, 'realname' => 0, 'coursecategory' => 0, 'filearea' => 0, 'timecreated' => 0);
+    $filters = ['filename' => 0, 'realname' => 0, 'suspended' => 0, 'coursecategory' => 0, 'filearea' => 0, 'timecreated' => 0];
 }
 
 // Initialize appropriate table based on current tab.
