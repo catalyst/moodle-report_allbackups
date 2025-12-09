@@ -128,11 +128,15 @@ class allbackups_table extends \table_sql {
      */
     public function col_action($row) {
         $context = \context_system::instance();
+        $itemid = $row->itemid;
+        if ($itemid == 0) {
+            $itemid = null;
+        }
         $fileurl = moodle_url::make_pluginfile_url(
             $row->contextid,
             $row->component,
             $row->filearea,
-            null,
+            $itemid,
             $row->filepath,
             $row->filename,
             true
