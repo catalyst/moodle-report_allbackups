@@ -32,6 +32,9 @@ $string['autobackup'] = 'Automated backups stored in specified server directory'
 $string['autobackup_description'] = 'This report shows all *.mbz (Moodle backup files) stored in the directory specified in the automated backups settings.';
 $string['autobackupnotset'] = 'Automated backup destination is not set - you cannot use this function';
 $string['component'] = 'Component';
+$string['components'] = 'Components';
+$string['componentshelp'] = 'A comma-separated list of components to include in the report.
+For example, to include only automated backups and user-initiated backups, use: "backup,user". The default will be used if left blank.';
 $string['couldnotdeletefile'] = 'The file with id: {$a} could not be found';
 $string['couldnotdownloadfile'] = 'Unable to download all backup files';
 $string['downloadallselectedfiles'] = 'Download selected files';
@@ -42,6 +45,9 @@ $string['eventbackupdeleted'] = 'A backup file was deleted';
 $string['eventreportdownloaded'] = 'All backups report downloaded';
 $string['eventreportviewed'] = 'All backups report viewed';
 $string['filearea'] = 'File area';
+$string['fileareas'] = 'File areas';
+$string['fileareashelp'] = 'A comma-separated list of file areas to include in the report.
+For example, to include only activity and course backups, use: "activity,course". The default will be used if left blank.';
 $string['filename'] = 'File name';
 $string['filesdeleted'] = '{$a} file(s) were deleted';
 $string['plugindescription'] = 'This report shows all *.mbz (Moodle backup files) on your site, please note that after deleting a file, Moodle can take up to 4 days before removing the file from disk storage.';
